@@ -380,6 +380,13 @@ td.r{text-align:right}th.r{text-align:right}
       <div class="fg"><label>Abril ($M)</label><input id="mc-abr" type="number" placeholder="0"></div>
       <div class="fg"><label>Mayo ($M)</label><input id="mc-may" type="number" placeholder="0"></div>
       <div class="fg" style="grid-column:1/4"><label>Observacion / Alerta</label><textarea id="mc-obs" placeholder="Estado actual, riesgos, oportunidades..."></textarea></div>
+      <div class="fg" id="mc-rep-wrap" style="grid-column:1/4;display:none"><label>Representante asignado</label>
+        <select id="mc-rep">
+          <option value="">Sin asignar</option>
+          <option value="Representante Cali">Representante Cali</option>
+          <option value="Representante Bogota">Representante Bogota</option>
+        </select>
+      </div>
     </div>
     <div class="mf"><button class="btn bo" onclick="cerrar('m-cuenta')">Cancelar</button><button class="btn bp" onclick="guardarCuenta()">Guardar</button></div>
   </div>
@@ -514,6 +521,38 @@ td.r{text-align:right}th.r{text-align:right}
       <button class="btn bo" onclick="cerrar('m-gest-al')">Cerrar</button>
       <button class="btn bg" id="mga-btn-res" onclick="resolverAlerta()">Marcar resuelta</button>
       <button class="btn bp" onclick="guardarAccion()">Guardar accion</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- MODAL GESTIÓN CUENTA EN ALERTA (representante puede modificar estado) -->
+<div class="ov" id="m-gest-cuenta">
+  <div class="modal" style="max-width:560px">
+    <div class="mh">
+      <div><div class="mt" id="mgc-titulo">Gestionar Cuenta</div><div style="font-size:10px;color:#aaa;margin-top:1px" id="mgc-meta"></div></div>
+      <button class="mx" onclick="cerrar('m-gest-cuenta')">&#10005;</button>
+    </div>
+    <div id="mgc-detalle" style="padding:14px 16px;border-bottom:1px solid var(--bdr);background:#F8F9FF"></div>
+    <div style="padding:14px 16px">
+      <div class="fgrid g2" style="padding:0">
+        <div class="fg" style="grid-column:1/3">
+          <label>Estado de la cuenta</label>
+          <select id="mgc-estado">
+            <option value="Activa">Activa - Sin problemas</option>
+            <option value="Alerta">Alerta - Requiere atencion</option>
+            <option value="Inactiva">Inactiva</option>
+          </select>
+        </div>
+        <div class="fg" style="grid-column:1/3">
+          <label>Observacion / Novedad</label>
+          <textarea id="mgc-obs" placeholder="Describe la situacion actual, acciones tomadas, compromisos adquiridos..." style="min-height:90px"></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="mf">
+      <button class="btn bo" onclick="cerrar('m-gest-cuenta')">Cancelar</button>
+      <button class="btn bp" onclick="guardarGestionCuenta()">Guardar cambios</button>
     </div>
   </div>
 </div>
@@ -728,6 +767,9 @@ function rDash(){
 function abrirCuenta(id){
   D.editId=id;
   document.getElementById('m-cuenta-t').textContent=id?'Editar Cuenta':'Nueva Cuenta';
+  // Mostrar campo representante solo para director
+  const repWrap=document.getElementById('mc-rep-wrap');
+  if(repWrap) repWrap.style.display=esDir()?'':'none';
   if(id){
     const c=D.cuentas.find(x=>x.id===id);if(!c)return;
     document.getElementById('mc-n').value=c.nombre||'';
@@ -738,6 +780,11 @@ function abrirCuenta(id){
     document.getElementById('mc-abr').value=c.abr||'';
     document.getElementById('mc-may').value=c.may||'';
     document.getElementById('mc-obs').value=c.obs||'';
+    const repSel=document.getElementById('mc-rep');
+    if(repSel) repSel.value=c.representante||'';
+  }else{
+    const repSel=document.getElementById('mc-rep');
+    if(repSel) repSel.value='';
   }
   abrir('m-cuenta');
 }
@@ -754,9 +801,9 @@ function rCuentas(){
       +'<div class="cch" onclick="toggleCC(\''+c.id+'\')">'
       +'<div style="flex:1">'
       +'<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">'
-      +'<strong style="font-size:13px">'+c.nombre+'</strong>'
+      +'<strong style="font-size:13px">'+c.nombre+'</strong>'+(c.representante?'<span style="font-size:9px;background:var(--nl);color:var(--navy);padding:2px 6px;border-radius:10px;font-weight:700">'+c.representante+'</span>':'')
       +tbdg(c.territorio)+ebdg(c.estado)
-      +'<span style="font-size:10px;color:#888">'+(c.tipo||'')+'</span>'
+      +'<span style="font-size:10px;color:#888">'+(c.tipo||'')+'</span>'+(c.representante&&esDir()?'<span style="font-size:10px;background:var(--bl);color:var(--blue);padding:1px 7px;border-radius:10px;font-weight:700">'+c.representante+'</span>':'')
       +(cts.length?'<span class="bdg bgr">'+cts.length+' contacto'+(cts.length>1?'s':'')+'</span>':'')
       +'</div>'
       +'<div style="display:flex;gap:14px;margin-top:4px;flex-wrap:wrap">'
@@ -787,7 +834,8 @@ function toggleCC(id){const c=document.getElementById('cc-'+id);if(c)c.classList
 async function guardarCuenta(){
   ss('saving','Guardando...');
   const zona=esDir()?(document.getElementById('f-ter')&&document.getElementById('f-ter').value||'Cali'):gZona();
-  const o={nombre:document.getElementById('mc-n').value.trim(),territorio:zona,tipo:document.getElementById('mc-tipo').value,estado:document.getElementById('mc-est').value,prom:+document.getElementById('mc-p').value||0,mar:+document.getElementById('mc-mar').value||0,abr:+document.getElementById('mc-abr').value||0,may:+document.getElementById('mc-may').value||0,obs:document.getElementById('mc-obs').value,updated_at:now()};
+  const repVal=document.getElementById('mc-rep')&&document.getElementById('mc-rep').value||'';
+  const o={nombre:document.getElementById('mc-n').value.trim(),territorio:zona,tipo:document.getElementById('mc-tipo').value,estado:document.getElementById('mc-est').value,prom:+document.getElementById('mc-p').value||0,mar:+document.getElementById('mc-mar').value||0,abr:+document.getElementById('mc-abr').value||0,may:+document.getElementById('mc-may').value||0,obs:document.getElementById('mc-obs').value,representante:repVal,updated_at:now()};
   if(!o.nombre)return;
   try{D.editId?await sbU('cuentas',D.editId,o):await sbI('cuentas',{...o,id:uid()});await cargarTodo();ss('ok','Guardado');cerrar('m-cuenta');}
   catch(e){ss('err','Error');alert('Error: '+e.message);}
@@ -1067,44 +1115,99 @@ function rAlertas(){
   const resueltas=D.alertas.filter(a=>a.estado==='Resuelta').slice(0,3);
   const tCls={Alerta:'',Urgente:'urg',Info:'inf',Oportunidad:'op'};
   const tIcon={Alerta:'[!]',Urgente:'[!!]',Info:'[i]',Oportunidad:'[*]'};
+
+  // Mis alertas comerciales
   const al=document.getElementById('al-activas');
   if(al){
-    if(!activas.length&&!resueltas.length){al.innerHTML='<div class="empty">Sin alertas. Haz clic en + Nueva Alerta para crear una.</div>';}
-    else{
-      al.innerHTML=activas.map(a=>'<div class="achip '+(tCls[a.tipo]||'')+'">'
-        +'<div style="display:flex;align-items:flex-start;gap:10px">'
-        +'<span style="font-size:16px;flex-shrink:0">'+(tIcon[a.tipo]||'[!]')+'</span>'
-        +'<div style="flex:1">'
-        +'<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">'
-        +'<strong style="font-size:12px">'+a.titulo+'</strong>'
-        +(a.cuenta_nombre?'<span class="bdg bgr">'+a.cuenta_nombre+'</span>':'')
-        +(a.fecha_limite?'<span style="font-size:10px;color:#888">Vence: '+a.fecha_limite+'</span>':'')
-        +(esDir()?tbdg(a.territorio||''):'')
-        +'<span style="font-size:10px;color:#aaa;margin-left:auto">'+a.creado_por+'</span>'
-        +'</div>'
-        +(a.descripcion?'<div style="font-size:11px;color:#666;margin-top:3px;line-height:1.4">'+a.descripcion+'</div>':'')
-        // Mostrar cuantas acciones tiene
-        +(() => {let n=0;try{n=(JSON.parse(a.acciones||'[]')||[]).length;}catch(e){}return n>0?'<div style="font-size:10px;color:var(--teal);margin-top:3px">'+n+' accion'+(n>1?'es':'')+ ' registrada'+(n>1?'s':'')+'</div>':''})()
-        +'</div>'
-        +'<div style="display:flex;gap:4px;flex-shrink:0;flex-direction:column">'
-        +'<button class="btn bt bsm" onclick="gestionar(\''+a.id+'\')">Gestionar</button>'
-        +'<button class="btn bo bsm" onclick="abrirAlerta(\''+a.id+'\')">Editar</button>'
-        +'<button class="btn bd bsm" onclick="eliminarAlerta(\''+a.id+'\')">Borrar</button>'
-        +'</div></div></div>').join('')
-        +(resueltas.length?'<div style="margin-top:10px;padding-top:10px;border-top:1px solid #eee"><div style="font-size:10px;color:#aaa;font-weight:700;text-transform:uppercase;margin-bottom:6px">Resueltas</div>'+resueltas.map(a=>'<div class="achip res"><span style="font-size:11px;color:#888">[OK] <strong>'+a.titulo+'</strong> - '+a.creado_por+'</span></div>').join('')+'</div>':'');
+    if(!activas.length&&!resueltas.length){
+      al.innerHTML='<div class="empty">Sin alertas. Haz clic en + Nueva Alerta para crear una.</div>';
+    }else{
+      al.innerHTML=activas.map(function(a){
+        let nAcc=0;try{nAcc=(JSON.parse(a.acciones||'[]')||[]).length;}catch(e){}
+        return '<div class="achip '+(tCls[a.tipo]||'')+'" data-alert-id="'+a.id+'">'
+          +'<div style="display:flex;align-items:flex-start;gap:10px">'
+          +'<span style="font-size:16px;flex-shrink:0">'+(tIcon[a.tipo]||'[!]')+'</span>'
+          +'<div style="flex:1">'
+          +'<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">'
+          +'<strong style="font-size:12px">'+a.titulo+'</strong>'
+          +(a.cuenta_nombre?'<span class="bdg bgr">'+a.cuenta_nombre+'</span>':'')
+          +(a.fecha_limite?'<span style="font-size:10px;color:#888">Vence: '+a.fecha_limite+'</span>':'')
+          +(esDir()?tbdg(a.territorio||''):'')
+          +'<span style="font-size:10px;color:#aaa;margin-left:auto">'+a.creado_por+'</span>'
+          +'</div>'
+          +(a.descripcion?'<div style="font-size:11px;color:#666;margin-top:3px;line-height:1.4">'+a.descripcion+'</div>':'')
+          +(nAcc>0?'<div style="font-size:10px;color:var(--teal);margin-top:3px">'+nAcc+' accion'+(nAcc>1?'es':'')+ ' registrada'+(nAcc>1?'s':'')+'</div>':'')
+          +'</div>'
+          +'<div style="display:flex;gap:4px;flex-shrink:0;flex-direction:column">'
+          +'<button class="btn bt bsm" data-gestionar="'+a.id+'">Gestionar</button>'
+          +'<button class="btn bo bsm" data-editar-alerta="'+a.id+'">Editar</button>'
+          +'<button class="btn bd bsm" data-borrar-alerta="'+a.id+'">Borrar</button>'
+          +'</div></div></div>';
+      }).join('')
+      +(resueltas.length?'<div style="margin-top:10px;padding-top:10px;border-top:1px solid #eee"><div style="font-size:10px;color:#aaa;font-weight:700;text-transform:uppercase;margin-bottom:6px">Resueltas</div>'+resueltas.map(function(a){return'<div class="achip res"><span style="font-size:11px;color:#888">[OK] <strong>'+a.titulo+'</strong> - '+a.creado_por+'</span></div>';}).join('')+'</div>':'');
     }
   }
-  // Cuentas en alerta
+
+  // Cuentas que requieren atencin  CLICABLES con data-id
+  const cuentasAlerta=D.cuentas.filter(function(c){return c.estado==='Alerta';});
   const ac=document.getElementById('al-cuentas');
-  if(ac)ac.innerHTML=D.cuentas.filter(c=>c.estado==='Alerta').map(c=>'<div class="card" style="margin-bottom:8px;border-left:4px solid var(--amber)"><div style="padding:9px 14px"><div style="display:flex;align-items:center;gap:8px"><strong>'+c.nombre+'</strong>'+(esDir()?tbdg(c.territorio):'')+' <span style="margin-left:auto;font-size:12px;font-weight:800;color:var(--navy)">$'+c.prom+'M/mes</span></div>'+(c.obs?'<div style="font-size:11px;color:#666;margin-top:3px">'+c.obs+'</div>':'')+'</div></div>').join('')||'<div class="empty">Sin cuentas en alerta</div>';
-  // Funnel proximas
+  if(ac){
+    if(!cuentasAlerta.length){
+      ac.innerHTML='<div class="empty">Sin cuentas en alerta</div>';
+    }else{
+      ac.innerHTML=cuentasAlerta.map(function(c){
+        return '<div class="card" style="margin-bottom:8px;border-left:4px solid var(--amber)">'
+          +'<div style="padding:9px 14px">'
+          +'<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px">'
+          +'<strong>'+c.nombre+'</strong>'
+          +(esDir()?tbdg(c.territorio):'')
+          +(c.representante?'<span class="bdg bgr">'+c.representante+'</span>':'')
+          +' <span style="margin-left:auto;font-size:12px;font-weight:800;color:var(--navy)">$'+c.prom+'M/mes</span>'
+          +'</div>'
+          +(c.obs?'<div style="font-size:11px;color:#666;margin-bottom:8px;line-height:1.4">'+c.obs+'</div>':'')
+          +'<button class="btn bt bsm" data-gestionar-cuenta="'+c.id+'">Gestionar esta cuenta</button>'
+          +'</div></div>';
+      }).join('');
+    }
+  }
+
+  // Prximas acciones funnel
   const af=document.getElementById('al-funnel');
-  if(af)af.innerHTML=D.prospectos.filter(p=>p.fecha).sort((a,b)=>(a.fecha||'').localeCompare(b.fecha||'')).slice(0,5).map(p=>'<div class="card" style="margin-bottom:6px"><div style="padding:8px 14px;display:flex;align-items:center;gap:9px">'+bdg('b'+(p.etapa||'C'),p.etapa||'C')+'<div style="flex:1"><div style="font-size:11px;font-weight:700">'+p.nombre+'</div><div style="font-size:10px;color:#888">'+(p.proxima||'')+'</div></div><span style="font-size:10px;color:#aaa">'+(p.fecha||'')+'</span>'+(esDir()?tbdg(p.territorio||''):'')+'</div></div>').join('')||'<div class="empty">Sin acciones pendientes</div>';
+  if(af){
+    const proximas=D.prospectos.filter(function(p){return p.fecha;}).sort(function(a,b){return(a.fecha||'').localeCompare(b.fecha||'');}).slice(0,5);
+    af.innerHTML=proximas.map(function(p){
+      return '<div class="card" style="margin-bottom:6px"><div style="padding:8px 14px;display:flex;align-items:center;gap:9px">'
+        +bdg('b'+(p.etapa||'C'),p.etapa||'C')
+        +'<div style="flex:1"><div style="font-size:11px;font-weight:700">'+p.nombre+'</div>'
+        +'<div style="font-size:10px;color:#888">'+(p.proxima||'')+'</div></div>'
+        +'<span style="font-size:10px;color:#aaa">'+(p.fecha||'')+'</span>'
+        +(esDir()?tbdg(p.territorio||''):'')
+        +'</div></div>';
+    }).join('')||'<div class="empty">Sin acciones pendientes</div>';
+  }
+
+  // EVENT DELEGATION para todos los botones de alertas y cuentas
+  // Alertas comerciales
+  const alEl=document.getElementById('al-activas');
+  if(alEl){
+    alEl.onclick=function(e){
+      const btn=e.target.closest('[data-gestionar],[data-editar-alerta],[data-borrar-alerta]');
+      if(!btn)return;
+      if(btn.dataset.gestionar){gestionar(btn.dataset.gestionar);}
+      else if(btn.dataset.editarAlerta){abrirAlerta(btn.dataset.editarAlerta);}
+      else if(btn.dataset.borrarAlerta){eliminarAlerta(btn.dataset.borrarAlerta);}
+    };
+  }
+  // Cuentas en alerta
+  const acEl=document.getElementById('al-cuentas');
+  if(acEl){
+    acEl.onclick=function(e){
+      const btn=e.target.closest('[data-gestionar-cuenta]');
+      if(btn&&btn.dataset.gestionarCuenta){abrirGestionCuenta(btn.dataset.gestionarCuenta);}
+    };
+  }
 }
 
-// ========================================
-// DASHBOARD GESTION (DIRECTOR)
-// ========================================
 function rGestion(){
   if(!esDir())return;
   const now2=new Date();
@@ -1160,6 +1263,36 @@ function rGestion(){
     const col=pct>=75?'var(--green)':pct>=50?'var(--amber)':'var(--red)';
     return '<tr><td><strong>'+m.nombre+'</strong></td><td>'+tbdg(m.territorio)+'</td><td>'+(m.cel||m.wa?'<span style="color:var(--green)">OK '+(m.cel||m.wa)+'</span>':'<span style="color:var(--red);font-weight:700">Falta</span>')+'</td><td>'+(m.mail?'<span style="color:var(--green)">OK</span>':'<span style="color:var(--red);font-weight:700">Falta</span>')+'</td><td>'+(m.institucion?'<span style="color:var(--green)">OK</span>':'<span style="color:var(--red);font-weight:700">Falta</span>')+'</td><td>'+(m.bday?'<span style="color:var(--green)">OK '+m.bday+'</span>':'<span style="color:var(--red);font-weight:700">Falta</span>')+'</td><td><span style="color:'+col+';font-weight:700">'+pct+'%</span></td><td><button class="btn bo bsm" onclick="abrirMedico(\''+m.id+'\')">Completar</button></td></tr>';
   }).join('')||'<tr><td colspan="8" class="empty" style="color:var(--green)">Todos los medicos tienen datos completos</td></tr>';
+}
+
+
+// ========================================
+// GESTIN CUENTA EN ALERTA (desde representante)
+// ========================================
+let cuentaActivaId = null;
+
+function abrirGestionCuenta(id){
+  const c=D.cuentas.find(x=>x.id===id);if(!c)return;
+  cuentaActivaId=id;
+  document.getElementById('mgc-titulo').textContent=c.nombre;
+  document.getElementById('mgc-meta').textContent='Promedio: $'+c.prom+'M/mes'+(c.representante?' - '+c.representante:'')+(c.territorio?' - '+c.territorio:'');
+  document.getElementById('mgc-detalle').innerHTML='<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:6px">'+ebdg(c.estado)+(c.tipo?'<span class="bdg bgr">'+c.tipo+'</span>':'')+'</div>'+(c.obs?'<div style="font-size:12px;color:#666;line-height:1.5">'+c.obs+'</div>':'<div style="font-size:11px;color:#aaa">Sin observaciones registradas.</div>');
+  document.getElementById('mgc-estado').value=c.estado||'Activa';
+  document.getElementById('mgc-obs').value=c.obs||'';
+  abrir('m-gest-cuenta');
+}
+
+async function guardarGestionCuenta(){
+  if(!cuentaActivaId)return;
+  ss('saving','Guardando...');
+  const nuevoEstado=document.getElementById('mgc-estado').value;
+  const nuevaObs=document.getElementById('mgc-obs').value;
+  try{
+    await sbU('cuentas',cuentaActivaId,{estado:nuevoEstado,obs:nuevaObs,updated_at:now()});
+    await cargarTodo();
+    ss('ok','Cuenta actualizada');
+    cerrar('m-gest-cuenta');
+  }catch(e){ss('err','Error');alert('Error: '+e.message);}
 }
 
 // ========================================
