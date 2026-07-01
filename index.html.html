@@ -569,14 +569,14 @@ function mostrarCRM(){
   document.getElementById('login-wrap').style.display='none';
   document.getElementById('main-nav').style.display='flex';
   document.getElementById('main-content').style.display='block';
-  const col={Cali:'#0F6E56',Bogota:'#185FA5',Bogotá:'#185FA5',todas:'#6D28D9'};
+  const col={Cali:'#0F6E56',Bogota:'#185FA5',Bogota:'#185FA5',todas:'#6D28D9'};
   const ini=D.user.nombre.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase();
   const av=document.getElementById('uav');av.style.background=col[D.user.zona]||'#2D3A8C';av.textContent=ini;
   document.getElementById('unm').textContent=D.user.nombre+' / '+(D.user.zona==='todas'?'Dir.':D.user.zona);
   if(D.user.zona==='todas'){
     document.getElementById('f-ter-wrap').innerHTML='<select id="f-ter" onchange="renderCuentas()" style="padding:6px 9px;border:1.5px solid var(--border);border-radius:6px;font-size:11.5px"><option value="">Todos los territorios</option><option>Cali</option><option>Bogota</option></select>';
   }
-  // Mostrar tab Gestión solo para Director
+  // Mostrar tab Gestion solo para Director
   const navGestion=document.getElementById('nav-gestion');
   if(navGestion) navGestion.style.display=D.user.rol==='director'?'':'none';
   // Mostrar barra progreso solo para representantes
@@ -683,9 +683,9 @@ function rDash(){
     
     if(fillEl){fillEl.style.width=pct+'%';fillEl.style.background=col;}
     if(valEl){valEl.textContent=nVisitas;valEl.style.color=col;}
-    if(subEl){subEl.textContent=meses[mesActual]+' '+anio+' · Día '+diaHoy+' de '+diasMes+' ('+pctMes+'% del mes transcurrido)';}
+    if(subEl){subEl.textContent=meses[mesActual]+' '+anio+' - Dia '+diaHoy+' de '+diasMes+' ('+pctMes+'% del mes transcurrido)';}
     if(pctEl){pctEl.textContent=pct+'% de la meta cumplido';}
-    if(restEl){restEl.textContent=restantes>0?restantes+' visitas para llegar a 20':'¡Meta mensual alcanzada! ✓';}
+    if(restEl){restEl.textContent=restantes>0?restantes+' visitas para llegar a 20':'Meta mensual alcanzada! OK';}
     
     // Mini KPIs adicionales
     const prospActivos=D.prospectos.length;
@@ -695,7 +695,7 @@ function rDash(){
     
     if(miniEl) miniEl.innerHTML=[
       {l:'Prospectos activos',v:prospActivos,m:15,u:'meta 15'},
-      {l:'Médicos cat. A',v:medCat,m:10,u:'seguimiento'},
+      {l:'Medicos cat. A',v:medCat,m:10,u:'seguimiento'},
       {l:'Visitas cat. A mes',v:visitasA,m:10,u:'de este mes'},
       {l:'Alertas abiertas',v:alertasAct,m:0,u:'pendientes'},
     ].map(k=>{
@@ -744,8 +744,8 @@ function renderCuentas(){
      +'<strong style="font-size:13px">'+c.nombre+'</strong>'
      +tbdg(c.territorio)+ebdg(c.estado)
      +'<span style="font-size:10px;color:#888">'+(c.tipo||'')+'</span>'
-     +(cts.length>0?'<span style="font-size:10px;background:var(--navy-l);color:var(--navy);padding:1px 7px;border-radius:10px;font-weight:700">👥 '+cts.length+' contacto'+(cts.length>1?'s':'')+'</span>':'')
-     +(meds.length>0?'<span style="font-size:10px;background:#EDE9FE;color:var(--purple);padding:1px 7px;border-radius:10px;font-weight:700">🩺 '+meds.length+' medico'+(meds.length>1?'s':'')+'</span>':'')
+     +(cts.length>0?'<span style="font-size:10px;background:var(--navy-l);color:var(--navy);padding:1px 7px;border-radius:10px;font-weight:700"> '+cts.length+' contacto'+(cts.length>1?'s':'')+'</span>':'')
+     +(meds.length>0?'<span style="font-size:10px;background:#EDE9FE;color:var(--purple);padding:1px 7px;border-radius:10px;font-weight:700"> '+meds.length+' medico'+(meds.length>1?'s':'')+'</span>':'')
      +'</div>'
      +'<div style="display:flex;gap:14px;margin-top:5px;flex-wrap:wrap">'
      +'<span style="font-size:11px;font-weight:700;color:var(--navy)">Prom: '+fM(c.prom)+'/mes</span>'
@@ -753,31 +753,31 @@ function renderCuentas(){
      +'<span style="font-size:11px;color:#888">Abr: '+fM(c.abr)+'</span>'
      +'<span style="font-size:11px;color:#888">May: '+fM(c.may)+'</span>'
      +'</div>'
-     +(c.obs?'<div style="font-size:10px;color:'+(c.obs.includes('CRÍT')||c.obs.includes('URGENTE')?'var(--red)':'#888')+';margin-top:4px">'+c.obs.substring(0,100)+(c.obs.length>100?'...':'')+'</div>':'')
+     +(c.obs?'<div style="font-size:10px;color:'+(c.obs.includes('CRIT')||c.obs.includes('URGENTE')?'var(--red)':'#888')+';margin-top:4px">'+c.obs.substring(0,100)+(c.obs.length>100?'...':'')+'</div>':'')
      +'</div>'
      +'<div style="display:flex;gap:6px;align-items:center;flex-shrink:0">'
-     +'<button class="btn bo bsm" onclick="event.stopPropagation();abrirModalCuenta(''+c.id+'')">✏️</button>'
-     +'<span class="expand-icon">▼</span>'
+     +'<button class="btn bo bsm" onclick="event.stopPropagation();abrirModalCuenta(''+c.id+'')">Editar</button>'
+     +'<span class="expand-icon">v</span>'
      +'</div></div>'
      +'<div class="cuenta-body" id="cb-'+c.id+'">'
      // CONTACTOS
      +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">'
-     +'<div style="font-size:12px;font-weight:700;color:var(--navy)">👥 Contactos de '+c.nombre+'</div>'
+     +'<div style="font-size:12px;font-weight:700;color:var(--navy)"> Contactos de '+c.nombre+'</div>'
      +'<button class="btn bt bsm" onclick="abrirModalContacto(''+c.id+'',''+c.nombre.replace(/'/g,"\'")+'')" >+ Agregar contacto</button>'
      +'</div>'
      +(cts.length===0
        ?'<div style="text-align:center;padding:14px;color:#ccc;font-size:11px;background:#F8F9FF;border-radius:8px">Sin contactos. Haz clic en <strong>+ Agregar contacto</strong> para empezar.</div>'
        :cts.map(ct=>renderChip(ct)).join('')
      )
-     // MÉDICOS
+     // MEDICOS
      +(meds.length>0
        ?'<div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border)">'
-       +'<div style="font-size:11px;font-weight:700;color:var(--purple);margin-bottom:8px">🩺 Medicos que operan en esta institucion</div>'
+       +'<div style="font-size:11px;font-weight:700;color:var(--purple);margin-bottom:8px"> Medicos que operan en esta institucion</div>'
        +meds.map(m=>'<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #f0f0f0">'
          +'<div class="avatar" style="background:'+avBg(m.nombre)+';width:28px;height:28px;font-size:10px">'+ini(m.nombre)+'</div>'
          +'<div style="flex:1"><div style="font-size:11px;font-weight:700">'+m.nombre+'</div>'
          +'<div style="font-size:10px;color:#888">'+(m.especialidad||'')+' / <span style="color:'+catCol(m.categoria)+';font-weight:700">'+catL(m.categoria)+'</span></div></div>'
-         +(m.cel?'<a href="tel:'+m.cel+'" style="font-size:10px;color:var(--navy)">📱 '+m.cel+'</a>':'')
+         +(m.cel?'<a href="tel:'+m.cel+'" style="font-size:10px;color:var(--navy)"> '+m.cel+'</a>':'')
          +'</div>').join('')
        +'</div>':''
      )
@@ -790,23 +790,23 @@ function renderChip(ct){
    +'<div class="ct-chip-top">'
    +'<div class="ct-av" style="background:'+avBg(ct.nombre)+'">'+ini(ct.nombre)+'</div>'
    +'<div class="ct-info">'
-   +'<div class="ct-name">'+ct.nombre+' <span style="font-size:11px;color:'+impC(ct.importancia)+'">'+(ct.importancia==='Alta'?'⭐⭐⭐':ct.importancia==='Media'?'⭐⭐':'⭐')+'</span></div>'
+   +'<div class="ct-name">'+ct.nombre+' <span style="font-size:11px;color:'+impC(ct.importancia)+'">'+(ct.importancia==='Alta'?'***':ct.importancia==='Media'?'**':'*')+'</span></div>'
    +'<div class="ct-cargo">'+(ct.rol||'')+(ct.area?' / '+ct.area:'')+'</div>'
    +'<div class="ct-datos">'
-   +(ct.cel?'<span class="ct-dato">📱 <a href="tel:'+ct.cel+'">'+ct.cel+'</a></span>':'')
-   +(ct.wa&&ct.wa!==ct.cel?'<span class="ct-dato">💬 <a href="https://wa.me/57'+ct.wa.replace(/\s/g,'')+'" target="_blank">'+ct.wa+'</a></span>':'')
-   +(ct.mail?'<span class="ct-dato">✉️ <a href="mailto:'+ct.mail+'">'+ct.mail+'</a></span>':'')
-   +(ct.bday?'<span class="ct-dato">🎂 '+ct.bday+'</span>':'')
-   +(ct.hora?'<span class="ct-dato">🕐 '+ct.hora+'</span>':'')
+   +(ct.cel?'<span class="ct-dato"> <a href="tel:'+ct.cel+'">'+ct.cel+'</a></span>':'')
+   +(ct.wa&&ct.wa!==ct.cel?'<span class="ct-dato"> <a href="https://wa.me/57'+ct.wa.replace(/\s/g,'')+'" target="_blank">'+ct.wa+'</a></span>':'')
+   +(ct.mail?'<span class="ct-dato"> <a href="mailto:'+ct.mail+'">'+ct.mail+'</a></span>':'')
+   +(ct.bday?'<span class="ct-dato"> '+ct.bday+'</span>':'')
+   +(ct.hora?'<span class="ct-dato"> '+ct.hora+'</span>':'')
    +(ct.canal?'<span class="ct-dato" style="color:var(--teal)">Canal: '+ct.canal+'</span>':'')
    +'</div>'
    +(ct.descripcion?'<div style="font-size:10px;color:#666;margin-top:4px">'+ct.descripcion+'</div>':'')
-   +(ct.notas?'<div class="ct-notas">📝 '+ct.notas+'</div>':'')
-   +(ct.extra?'<div style="font-size:10px;color:#aaa;margin-top:3px">ℹ️ '+ct.extra+'</div>':'')
+   +(ct.notas?'<div class="ct-notas"> '+ct.notas+'</div>':'')
+   +(ct.extra?'<div style="font-size:10px;color:#aaa;margin-top:3px">i '+ct.extra+'</div>':'')
    +'</div>'
    +'<div class="ct-actions">'
-   +'<button class="btn bo bsm" onclick="editarContacto(''+ct.id+'')">✏️</button>'
-   +'<button class="btn bd bsm" onclick="eliminarContacto(''+ct.id+'')">🗑</button>'
+   +'<button class="btn bo bsm" onclick="editarContacto(''+ct.id+'')">Editar</button>'
+   +'<button class="btn bd bsm" onclick="eliminarContacto(''+ct.id+'')">?</button>'
    +'</div></div></div>';
 }
 
@@ -834,7 +834,7 @@ function abrirModalContacto(cId,cNom){
     document.getElementById('mct-t').textContent='Nuevo Contacto';
     document.getElementById('mct-lbl').textContent='';
   }
-  // Poblar select de cuentas después de abrir
+  // Poblar select de cuentas despues de abrir
   setTimeout(()=>poblarCuentasSelect(cId), 10);
   abrirModal('mct');
 }
@@ -875,14 +875,14 @@ function renderContactos(){
   if(!lista.length){document.getElementById('contactos-list').innerHTML='<div class="empty">Sin contactos</div>';return;}
   const grupos={};
   lista.forEach(ct=>{const k=ct.cuenta_nombre||ct.institucion||'Sin cuenta';if(!grupos[k])grupos[k]=[];grupos[k].push(ct);});
-  document.getElementById('contactos-list').innerHTML=Object.entries(grupos).map(([cuenta,cts])=>'<div class="card" style="margin-bottom:12px"><div class="ch"><div class="ct">🏥 '+cuenta+'</div><span style="font-size:10px;color:#aaa">'+cts.length+' contacto'+(cts.length>1?'s':'')+'</span><button class="btn bt bsm" onclick="abrirModalContacto(''+(D.cuentas.find(c=>c.nombre===cuenta)||{}).id||''+'',''+cuenta.replace(/'/g,"\'")+'')" >+ Agregar</button></div><div class="cb">'+cts.map(ct=>renderChip(ct)).join('')+'</div></div>').join('');
+  document.getElementById('contactos-list').innerHTML=Object.entries(grupos).map(([cuenta,cts])=>'<div class="card" style="margin-bottom:12px"><div class="ch"><div class="ct"> '+cuenta+'</div><span style="font-size:10px;color:#aaa">'+cts.length+' contacto'+(cts.length>1?'s':'')+'</span><button class="btn bt bsm" onclick="abrirModalContacto(''+(D.cuentas.find(c=>c.nombre===cuenta)||{}).id||''+'',''+cuenta.replace(/'/g,"\'")+'')" >+ Agregar</button></div><div class="cb">'+cts.map(ct=>renderChip(ct)).join('')+'</div></div>').join('');
 }
 
 function renderMedicos(){
   const q=(document.getElementById('q-m').value||'').toLowerCase();
   const fc=document.getElementById('f-mcat').value;
   const lista=D.medicos.filter(m=>(!q||m.nombre.toLowerCase().includes(q)||(m.institucion||'').toLowerCase().includes(q)||(m.notas||'').toLowerCase().includes(q))&&(!fc||m.categoria===fc));
-  document.getElementById('medicos-grid').innerHTML=!lista.length?'<div class="empty">Sin medicos</div>':lista.map(m=>'<div class="medico-card" onclick="editarMedico(''+m.id+'')"><div style="display:flex;align-items:flex-start;gap:9px"><div class="avatar" style="background:'+avBg(m.nombre)+';margin-top:2px">'+ini(m.nombre)+'</div><div style="flex:1"><div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap"><strong style="font-size:12px">'+m.nombre+'</strong><span style="font-size:9px;font-weight:700;color:'+catCol(m.categoria)+';background:'+catBg(m.categoria)+';padding:1px 5px;border-radius:3px">'+catL(m.categoria)+'</span>'+(esD()?tbdg(m.territorio):'')+(m.figura==='si'?'<span>🎭</span>':'')+(m.video==='si'?'<span>🎬</span>':'')+'</div><div style="font-size:10px;color:#666;margin-top:2px">'+(m.especialidad||'')+' / '+(m.institucion||'')+'</div>'+(m.institucion2?'<div style="font-size:9px;color:#aaa">Tambien: '+m.institucion2+'</div>':'')+'<div style="display:flex;gap:10px;margin-top:5px;flex-wrap:wrap">'+(m.cel?'<span style="font-size:10px">📱 '+m.cel+'</span>':'')+(m.mail?'<span style="font-size:10px">✉️ '+m.mail+'</span>':'')+(m.bday?'<span style="font-size:10px">🎂 '+m.bday+'</span>':'')+(m.marca?'<span style="font-size:10px;color:var(--amber)">Usa: '+m.marca+'</span>':'')+'<span style="font-size:10px;color:#888">Visita: '+(m.frecuencia||'Sin definir')+'</span></div>'+(m.intereses?'<div style="font-size:9px;color:var(--purple);margin-top:3px">💡 '+m.intereses+'</div>':'')+(m.notas?'<div style="font-size:9px;color:#999;margin-top:4px;border-top:1px solid #f0f0f0;padding-top:3px">'+m.notas.substring(0,150)+(m.notas.length>150?'...':'')+'</div>':'')+'</div><button class="btn bo bsm" onclick="event.stopPropagation();editarMedico(''+m.id+'')">✏️</button></div></div>').join('');
+  document.getElementById('medicos-grid').innerHTML=!lista.length?'<div class="empty">Sin medicos</div>':lista.map(m=>'<div class="medico-card" onclick="editarMedico(''+m.id+'')"><div style="display:flex;align-items:flex-start;gap:9px"><div class="avatar" style="background:'+avBg(m.nombre)+';margin-top:2px">'+ini(m.nombre)+'</div><div style="flex:1"><div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap"><strong style="font-size:12px">'+m.nombre+'</strong><span style="font-size:9px;font-weight:700;color:'+catCol(m.categoria)+';background:'+catBg(m.categoria)+';padding:1px 5px;border-radius:3px">'+catL(m.categoria)+'</span>'+(esD()?tbdg(m.territorio):'')+(m.figura==='si'?'<span></span>':'')+(m.video==='si'?'<span></span>':'')+'</div><div style="font-size:10px;color:#666;margin-top:2px">'+(m.especialidad||'')+' / '+(m.institucion||'')+'</div>'+(m.institucion2?'<div style="font-size:9px;color:#aaa">Tambien: '+m.institucion2+'</div>':'')+'<div style="display:flex;gap:10px;margin-top:5px;flex-wrap:wrap">'+(m.cel?'<span style="font-size:10px"> '+m.cel+'</span>':'')+(m.mail?'<span style="font-size:10px"> '+m.mail+'</span>':'')+(m.bday?'<span style="font-size:10px"> '+m.bday+'</span>':'')+(m.marca?'<span style="font-size:10px;color:var(--amber)">Usa: '+m.marca+'</span>':'')+'<span style="font-size:10px;color:#888">Visita: '+(m.frecuencia||'Sin definir')+'</span></div>'+(m.intereses?'<div style="font-size:9px;color:var(--purple);margin-top:3px"> '+m.intereses+'</div>':'')+(m.notas?'<div style="font-size:9px;color:#999;margin-top:4px;border-top:1px solid #f0f0f0;padding-top:3px">'+m.notas.substring(0,150)+(m.notas.length>150?'...':'')+'</div>':'')+'</div><button class="btn bo bsm" onclick="event.stopPropagation();editarMedico(''+m.id+'')">Editar</button></div></div>').join('');
 }
 
 function editarMedico(id){
@@ -907,7 +907,7 @@ const EN={C:'C-Contacto',D:'D-Documentacion',N:'N-Negociacion',K:'K-Apertura',A:
 
 function renderFunnel(){
   document.getElementById('funnel-kanban').innerHTML=['C','D','N','K','A'].map(e=>{const cards=D.prospectos.filter(p=>p.etapa===e).map(p=>'<div class="pc" onclick="editarProspecto(''+p.id+'')"><div class="pn">'+p.nombre+'</div><div class="pi">'+(esD()?p.territorio+' / ':'')+(p.pot>0?'$'+p.pot+'M':'')+'</div>'+(p.proxima?'<div class="pi" style="font-size:9px;color:#ccc">'+p.proxima+'</div>':'')+'</div>').join('');return'<div class="fcol"><div class="fch" style="background:'+EC[e]+'">'+EN[e]+'</div><div class="fcb">'+(cards||'<div style="padding:7px;font-size:9px;color:#ccc;text-align:center">Vacio</div>')+'</div></div>';}).join('');
-  document.getElementById('tb-prospectos').innerHTML=D.prospectos.map(p=>'<tr><td><strong>'+p.nombre+'</strong></td><td>'+tbdg(p.territorio)+'</td><td>'+bdg('b'+(p.etapa||'C'),p.etapa||'C')+'</td><td style="font-size:10px;color:#888">'+(p.tipo||'')+'</td><td style="font-size:10px">'+(p.contacto||'?')+(p.tel?' / '+p.tel:'')+'</td><td class="r" style="font-weight:700">'+(p.pot>0?'$'+p.pot+'M':'?')+'</td><td style="font-size:10px;color:#777;max-width:100px">'+(p.ultima||'').substring(0,50)+'</td><td style="font-size:10px;color:var(--navy)">'+(p.proxima||'?')+'</td><td style="font-size:10px;color:#aaa;white-space:nowrap">'+(p.fecha||'')+'</td><td style="white-space:nowrap"><button class="btn bo bsm" onclick="editarProspecto(''+p.id+'')">✏️</button> <button class="btn bd bsm" onclick="eliminarProspecto(''+p.id+'')">🗑</button></td></tr>').join('')||'<tr><td colspan="10" class="empty">Sin prospectos</td></tr>';
+  document.getElementById('tb-prospectos').innerHTML=D.prospectos.map(p=>'<tr><td><strong>'+p.nombre+'</strong></td><td>'+tbdg(p.territorio)+'</td><td>'+bdg('b'+(p.etapa||'C'),p.etapa||'C')+'</td><td style="font-size:10px;color:#888">'+(p.tipo||'')+'</td><td style="font-size:10px">'+(p.contacto||'?')+(p.tel?' / '+p.tel:'')+'</td><td class="r" style="font-weight:700">'+(p.pot>0?'$'+p.pot+'M':'?')+'</td><td style="font-size:10px;color:#777;max-width:100px">'+(p.ultima||'').substring(0,50)+'</td><td style="font-size:10px;color:var(--navy)">'+(p.proxima||'?')+'</td><td style="font-size:10px;color:#aaa;white-space:nowrap">'+(p.fecha||'')+'</td><td style="white-space:nowrap"><button class="btn bo bsm" onclick="editarProspecto(''+p.id+'')">Editar</button> <button class="btn bd bsm" onclick="eliminarProspecto(''+p.id+'')">?</button></td></tr>').join('')||'<tr><td colspan="10" class="empty">Sin prospectos</td></tr>';
 }
 
 function editarProspecto(id){
@@ -948,7 +948,7 @@ function renderAlertas(){renderAlertasPage();}
 
 
 
-// ═══ CONTACTO: SELECT DE CUENTAS ═══
+// ??? CONTACTO: SELECT DE CUENTAS ???
 function poblarCuentasSelect(cuentaIdPredeterminado){
   const sel = document.getElementById('ct-inst-sel');
   if(!sel) return;
@@ -973,7 +973,7 @@ function poblarCuentasSelect(cuentaIdPredeterminado){
     }
   }
   
-  // Hacer el select read-only si viene de una cuenta específica
+  // Hacer el select read-only si viene de una cuenta especifica
   sel.disabled = !!D.ctxId;
   if(D.ctxId){
     sel.style.background='#F8F9FF';sel.style.color='#888';
@@ -988,7 +988,7 @@ function seleccionarCuentaContacto(){
   if(!sel||!instEl) return;
   const opt = sel.options[sel.selectedIndex];
   instEl.value = opt ? (opt.getAttribute('data-nombre')||'') : '';
-  // Actualizar ctxId y ctxNom para guardar la relación
+  // Actualizar ctxId y ctxNom para guardar la relacion
   if(sel.value){
     D.ctxId = sel.value;
     D.ctxNom = opt.getAttribute('data-nombre')||'';
@@ -998,7 +998,7 @@ function seleccionarCuentaContacto(){
   }
 }
 
-// ═══ ALERTAS COMERCIALES ═══
+// ??? ALERTAS COMERCIALES ???
 async function guardarAlerta(){
   ss('saving','Guardando...');
   const g=id=>document.getElementById(id)&&document.getElementById(id).value||'';
@@ -1040,7 +1040,7 @@ function renderAlertasPage(){
   const mis=(D.alertas||[]).filter(a=>a.estado!='Resuelta');
   const resueltas=(D.alertas||[]).filter(a=>a.estado==='Resuelta').slice(0,3);
   const tipoClass={Alerta:'',Urgente:'urgente',Info:'info',Oportunidad:'oportunidad'};
-  const tipoIcon={Alerta:'⚠️',Urgente:'🔴',Info:'ℹ️',Oportunidad:'⭐'};
+  const tipoIcon={Alerta:'!',Urgente:'',Info:'i',Oportunidad:'*'};
   
   const listEl=document.getElementById('alertas-comerciales-list');
   if(listEl){
@@ -1049,7 +1049,7 @@ function renderAlertasPage(){
     }else{
       listEl.innerHTML=mis.map(al=>'<div class="alerta-chip '+(tipoClass[al.tipo]||'')+'">'
         +'<div style="display:flex;align-items:flex-start;gap:10px">'
-        +'<span style="font-size:18px;flex-shrink:0">'+(tipoIcon[al.tipo]||'⚠️')+'</span>'
+        +'<span style="font-size:18px;flex-shrink:0">'+(tipoIcon[al.tipo]||'!')+'</span>'
         +'<div style="flex:1">'
         +'<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">'
         +'<strong style="font-size:12px">'+al.titulo+'</strong>'
@@ -1062,31 +1062,31 @@ function renderAlertasPage(){
         +'</div>'
         +'<div style="display:flex;gap:4px;flex-shrink:0">'
         +'<button class="btn bt bsm" onclick="abrirDetalleAlerta(''+al.id+'')">&#128196; Gestionar</button>'
-        +'<button class="btn bo bsm" onclick="editarAlerta(''+al.id+'')">✏️</button>'
-        +'<button class="btn bd bsm" onclick="eliminarAlerta(''+al.id+'')">🗑</button>'
+        +'<button class="btn bo bsm" onclick="editarAlerta(''+al.id+'')">Editar</button>'
+        +'<button class="btn bd bsm" onclick="eliminarAlerta(''+al.id+'')">?</button>'
         +'</div></div></div>').join('')
-        +(resueltas.length?'<div style="margin-top:10px;padding-top:10px;border-top:1px solid #eee"><div style="font-size:10px;color:#aaa;font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Resueltas recientemente</div>'+resueltas.map(al=>'<div class="alerta-chip resuelta" style="margin-bottom:6px"><div style="font-size:11px;color:#888">✓ <strong>'+al.titulo+'</strong> &mdash; '+al.creado_por+'</div></div>').join('')+'</div>':'');
+        +(resueltas.length?'<div style="margin-top:10px;padding-top:10px;border-top:1px solid #eee"><div style="font-size:10px;color:#aaa;font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Resueltas recientemente</div>'+resueltas.map(al=>'<div class="alerta-chip resuelta" style="margin-bottom:6px"><div style="font-size:11px;color:#888">OK <strong>'+al.titulo+'</strong> &mdash; '+al.creado_por+'</div></div>').join('')+'</div>':'');
     }
   }
 
   // Cuentas en alerta
   const ctAlerta=D.cuentas.filter(c=>c.estado==='Alerta').sort((a,b)=>(+b.prom||0)-(+a.prom||0));
   const ctEl=document.getElementById('alertas-cuentas-list');
-  if(ctEl) ctEl.innerHTML=ctAlerta.map(c=>'<div class="card" style="margin-bottom:8px;border-left:4px solid '+(c.obs&&(c.obs.includes('CRÍT')||c.obs.includes('CRIT'))?'var(--red)':'var(--amber)')+'"><div style="padding:9px 14px"><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:3px"><strong>'+c.nombre+'</strong>'+(esD()?tbdg(c.territorio):'')+' <span style="margin-left:auto;font-size:12px;font-weight:800;color:var(--navy)">$'+c.prom+'M/mes</span></div><div style="font-size:11px;color:#666">'+(c.obs||'')+'</div></div></div>').join('')||'<div class="empty">Sin cuentas en alerta</div>';
+  if(ctEl) ctEl.innerHTML=ctAlerta.map(c=>'<div class="card" style="margin-bottom:8px;border-left:4px solid '+(c.obs&&(c.obs.includes('CRIT')||c.obs.includes('CRIT'))?'var(--red)':'var(--amber)')+'"><div style="padding:9px 14px"><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:3px"><strong>'+c.nombre+'</strong>'+(esD()?tbdg(c.territorio):'')+' <span style="margin-left:auto;font-size:12px;font-weight:800;color:var(--navy)">$'+c.prom+'M/mes</span></div><div style="font-size:11px;color:#666">'+(c.obs||'')+'</div></div></div>').join('')||'<div class="empty">Sin cuentas en alerta</div>';
 
-  // Cumpleaños
+  // Cumpleanos
   const bdays=[...D.medicos,...D.contactos].filter(x=>x.bday).sort((a,b)=>a.bday.localeCompare(b.bday));
   const bdEl=document.getElementById('alertas-bdays');
-  if(bdEl) bdEl.innerHTML=bdays.length?bdays.map(b=>'<div style="font-size:12px;padding:5px 0;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;gap:10px">🎂 <strong>'+b.nombre+'</strong><span style="color:#888;font-size:11px">'+b.bday+'</span>'+(b.especialidad?'<span class="badge bpurp">Medico</span>':'<span class="badge bgrey">Contacto</span>')+(esD()&&b.territorio?tbdg(b.territorio):'')+'</div>').join(''):'<div class="empty">Sin cumpleanos registrados</div>';
+  if(bdEl) bdEl.innerHTML=bdays.length?bdays.map(b=>'<div style="font-size:12px;padding:5px 0;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;gap:10px"> <strong>'+b.nombre+'</strong><span style="color:#888;font-size:11px">'+b.bday+'</span>'+(b.especialidad?'<span class="badge bpurp">Medico</span>':'<span class="badge bgrey">Contacto</span>')+(esD()&&b.territorio?tbdg(b.territorio):'')+'</div>').join(''):'<div class="empty">Sin cumpleanos registrados</div>';
 
-  // Próximas acciones funnel
+  // Proximas acciones funnel
   const prox=D.prospectos.filter(p=>p.fecha).sort((a,b)=>a.fecha.localeCompare(b.fecha)).slice(0,6);
   const fEl=document.getElementById('alertas-funnel');
   if(fEl) fEl.innerHTML=prox.map(p=>'<div class="card" style="margin-bottom:6px"><div style="padding:8px 14px;display:flex;align-items:center;gap:9px;flex-wrap:wrap">'+bdg('b'+(p.etapa||'C'),p.etapa||'C')+'<div style="flex:1"><div style="font-size:12px;font-weight:700">'+p.nombre+'</div><div style="font-size:10px;color:#888">'+(p.proxima||'')+'</div></div><span style="font-size:10px;color:#aaa">'+p.fecha+'</span>'+(esD()?tbdg(p.territorio||''):'')+'</div></div>').join('')||'<div class="empty">Sin acciones pendientes en funnel</div>';
 }
 
 
-// ═══ GESTIÓN DETALLE DE ALERTA ═══
+// ??? GESTION DETALLE DE ALERTA ???
 let alertaActivaId = null;
 
 function abrirDetalleAlerta(id){
@@ -1094,16 +1094,16 @@ function abrirDetalleAlerta(id){
   if(!al) return;
   alertaActivaId = id;
   
-  const tipoIcon={Alerta:'⚠️',Urgente:'🔴',Info:'ℹ️',Oportunidad:'⭐'};
+  const tipoIcon={Alerta:'!',Urgente:'',Info:'i',Oportunidad:'*'};
   const tipoClass={Alerta:'var(--amber)',Urgente:'var(--red)',Info:'var(--blue)',Oportunidad:'var(--green)'};
   
-  document.getElementById('mald-titulo').textContent = (tipoIcon[al.tipo]||'⚠️')+' '+al.titulo;
-  document.getElementById('mald-meta').textContent = 'Creada por '+al.creado_por+(al.fecha_limite?' · Vence: '+al.fecha_limite:'')+(al.cuenta_nombre?' · '+al.cuenta_nombre:'');
+  document.getElementById('mald-titulo').textContent = (tipoIcon[al.tipo]||'!')+' '+al.titulo;
+  document.getElementById('mald-meta').textContent = 'Creada por '+al.creado_por+(al.fecha_limite?' - Vence: '+al.fecha_limite:'')+(al.cuenta_nombre?' - '+al.cuenta_nombre:'');
   
   // Detalle
   const detEl = document.getElementById('mald-detalle-body');
   if(detEl) detEl.innerHTML = '<div style="display:flex;gap:10px;align-items:flex-start">'
-    +'<span style="font-size:22px">'+(tipoIcon[al.tipo]||'⚠️')+'</span>'
+    +'<span style="font-size:22px">'+(tipoIcon[al.tipo]||'!')+'</span>'
     +'<div><div style="font-size:13px;font-weight:700;color:var(--navy);margin-bottom:4px">'+al.titulo+'</div>'
     +(al.descripcion?'<div style="font-size:12px;color:#666;line-height:1.5">'+al.descripcion+'</div>':'')
     +'<div style="margin-top:6px"><span class="badge '+(al.estado==='Resuelta'?'bok':'bwarn')+'">'+al.estado+'</span>'
@@ -1113,7 +1113,7 @@ function abrirDetalleAlerta(id){
   // Historial de acciones
   renderAccionesAlerta(al);
   
-  // Botón resolver
+  // Boton resolver
   const btnR = document.getElementById('btn-resolver-detalle');
   if(btnR){
     btnR.style.display = al.estado==='Resuelta'?'none':'';
@@ -1133,13 +1133,13 @@ function renderAccionesAlerta(al){
   try{ acciones = al.acciones ? JSON.parse(al.acciones) : []; }catch(e){ acciones = []; }
   
   if(!acciones.length){
-    listEl.innerHTML = '<div style="text-align:center;padding:16px;color:#ccc;font-size:11px">Sin acciones registradas aún.<br>Registra la primera acción abajo.</div>';
+    listEl.innerHTML = '<div style="text-align:center;padding:16px;color:#ccc;font-size:11px">Sin acciones registradas aun.<br>Registra la primera accion abajo.</div>';
     return;
   }
   
   listEl.innerHTML = [...acciones].reverse().map(a=>'<div style="padding:8px 10px;background:#fff;border-radius:7px;margin-bottom:6px;border:1px solid var(--border)">'
     +'<div style="display:flex;gap:8px;align-items:flex-start">'
-    +'<span style="font-size:14px;flex-shrink:0">📝</span>'
+    +'<span style="font-size:14px;flex-shrink:0"></span>'
     +'<div style="flex:1">'
     +'<div style="font-size:11px;color:#666;line-height:1.5">'+a.texto+'</div>'
     +'<div style="font-size:10px;color:#aaa;margin-top:4px">'+a.autor+' &middot; '+a.fecha+'</div>'
@@ -1148,7 +1148,7 @@ function renderAccionesAlerta(al){
 
 async function guardarAccionAlerta(){
   const texto = document.getElementById('mald-nueva-accion').value.trim();
-  if(!texto){alert('Escribe la acción que se realizó.');return;}
+  if(!texto){alert('Escribe la accion que se realizo.');return;}
   if(!alertaActivaId)return;
   
   const al = D.alertas&&D.alertas.find(x=>x.id===alertaActivaId);
@@ -1172,7 +1172,7 @@ async function guardarAccionAlerta(){
       updated_at: new Date().toISOString()
     });
     await cargarDatos();
-    ss('ok','Acción guardada');
+    ss('ok','Accion guardada');
     document.getElementById('mald-nueva-accion').value='';
     // Actualizar el modal con los datos frescos
     const alActualizada = D.alertas&&D.alertas.find(x=>x.id===alertaActivaId);
@@ -1182,9 +1182,9 @@ async function guardarAccionAlerta(){
 
 async function resolverDesdeDetalle(){
   if(!alertaActivaId)return;
-  if(!confirm('¿Marcar esta alerta como resuelta?'))return;
+  if(!confirm('Marcar esta alerta como resuelta?'))return;
   
-  // Guardar acción de cierre primero
+  // Guardar accion de cierre primero
   const textoFinal = document.getElementById('mald-nueva-accion').value.trim();
   const al = D.alertas&&D.alertas.find(x=>x.id===alertaActivaId);
   if(!al)return;
@@ -1213,7 +1213,7 @@ async function resolverDesdeDetalle(){
   }catch(e){ss('err','Error');alert('Error: '+e.message);}
 }
 
-// ═══ DASHBOARD GESTIÓN (Director) ═══
+// ??? DASHBOARD GESTION (Director) ???
 function calcMedCompletitud(medico){
   let score=0;
   if(medico.cel||medico.wa) score++;
@@ -1228,7 +1228,7 @@ function renderGestion(){
   const ahora=new Date();
   const mesActual=ahora.getMonth();
   const anio=ahora.getFullYear();
-  const zonas=['Cali','Bogotá'];
+  const zonas=['Cali','Bogota'];
 
   // Filtrar visitas del mes actual
   const visitasMes=D.visitas.filter(v=>{
@@ -1243,26 +1243,26 @@ function renderGestion(){
   const totalProspectos=D.prospectos.length;
   const cuentasAlerta=D.cuentas.filter(c=>c.estado==='Alerta').length;
 
-  // Completitud médicos
+  // Completitud medicos
   const medCompletos=D.medicos.filter(m=>calcMedCompletitud(m)===4).length;
   const pctComp=totalMedicos>0?Math.round(medCompletos/totalMedicos*100):0;
 
   const resumEl=document.getElementById('dg-resumen-empresa');
   if(resumEl) resumEl.innerHTML=[
     {l:'Visitas este mes',v:totalVisitas,m:40,u:'de 40 meta total',c:totalVisitas>=40?'ok':totalVisitas>=20?'warn':'red'},
-    {l:'Médicos en directorio',v:totalMedicos,m:20,u:'registrados',c:totalMedicos>=20?'ok':totalMedicos>=10?'warn':'red'},
-    {l:'Prospectos activos',v:totalProspectos,m:15,u:'meta mínima 15',c:totalProspectos>=15?'ok':totalProspectos>=8?'warn':'red'},
-    {l:'Completitud médicos',v:pctComp+'%',m:80,u:'meta 80% con datos completos',c:pctComp>=80?'ok':pctComp>=50?'warn':'red'},
+    {l:'Medicos en directorio',v:totalMedicos,m:20,u:'registrados',c:totalMedicos>=20?'ok':totalMedicos>=10?'warn':'red'},
+    {l:'Prospectos activos',v:totalProspectos,m:15,u:'meta minima 15',c:totalProspectos>=15?'ok':totalProspectos>=8?'warn':'red'},
+    {l:'Completitud medicos',v:pctComp+'%',m:80,u:'meta 80% con datos completos',c:pctComp>=80?'ok':pctComp>=50?'warn':'red'},
   ].map(k=>'<div class="dg-card"><div class="dg-label">'+k.l+'</div><div class="dg-val dg-'+k.c+'">'+k.v+'</div><div class="dg-meta">'+k.u+'</div><div class="dg-bar-wrap"><div class="dg-bar" style="background:'+(k.c==='ok'?'var(--green)':k.c==='warn'?'var(--amber)':'var(--red)')+';width:'+Math.min(100,typeof k.v==='number'?Math.round(k.v/k.m*100):pctComp)+'%"></div></div></div>').join('');
 
-  // COMPLETITUD MÉDICOS detalle
+  // COMPLETITUD MEDICOS detalle
   const compEl=document.getElementById('dg-completitud');
   if(compEl){
     const campos=[
-      {key:'tel',label:'Teléfono',check:m=>!!(m.cel||m.wa)},
+      {key:'tel',label:'Telefono',check:m=>!!(m.cel||m.wa)},
       {key:'mail',label:'Email',check:m=>!!m.mail},
-      {key:'inst',label:'Institución',check:m=>!!m.institucion},
-      {key:'bday',label:'Cumpleaños',check:m=>!!m.bday},
+      {key:'inst',label:'Institucion',check:m=>!!m.institucion},
+      {key:'bday',label:'Cumpleanos',check:m=>!!m.bday},
     ];
     compEl.innerHTML='<div class="card"><div class="cb"><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px">'+campos.map(campo=>{
       const conDato=D.medicos.filter(campo.check).length;
@@ -1272,7 +1272,7 @@ function renderGestion(){
     }).join('')+'</div></div></div>';
   }
 
-  // MÉDICOS INCOMPLETOS
+  // MEDICOS INCOMPLETOS
   const tbInc=document.getElementById('tb-medicos-incompletos');
   if(tbInc){
     const incompletos=D.medicos.filter(m=>calcMedCompletitud(m)<4).sort((a,b)=>calcMedCompletitud(a)-calcMedCompletitud(b));
@@ -1283,14 +1283,14 @@ function renderGestion(){
       return '<tr>'
         +'<td><strong>'+m.nombre+'</strong></td>'
         +'<td>'+tbdg(m.territorio)+'</td>'
-        +'<td>'+(m.cel||m.wa?'<span style="color:var(--green)">✓ '+(m.cel||m.wa)+'</span>':'<span style="color:var(--red);font-weight:700">✗ Falta</span>')+'</td>'
-        +'<td>'+(m.mail?'<span style="color:var(--green)">✓ '+m.mail+'</span>':'<span style="color:var(--red);font-weight:700">✗ Falta</span>')+'</td>'
-        +'<td>'+(m.institucion?'<span style="color:var(--green)">✓</span>':'<span style="color:var(--red);font-weight:700">✗</span>')+'</td>'
-        +'<td>'+(m.bday?'<span style="color:var(--green)">✓ '+m.bday+'</span>':'<span style="color:var(--red);font-weight:700">✗ Falta</span>')+'</td>'
+        +'<td>'+(m.cel||m.wa?'<span style="color:var(--green)">OK '+(m.cel||m.wa)+'</span>':'<span style="color:var(--red);font-weight:700">? Falta</span>')+'</td>'
+        +'<td>'+(m.mail?'<span style="color:var(--green)">OK '+m.mail+'</span>':'<span style="color:var(--red);font-weight:700">? Falta</span>')+'</td>'
+        +'<td>'+(m.institucion?'<span style="color:var(--green)">OK</span>':'<span style="color:var(--red);font-weight:700">?</span>')+'</td>'
+        +'<td>'+(m.bday?'<span style="color:var(--green)">OK '+m.bday+'</span>':'<span style="color:var(--red);font-weight:700">? Falta</span>')+'</td>'
         +'<td><div style="display:flex;align-items:center;gap:6px"><span style="font-size:12px;font-weight:700;color:'+(cls==='ok'?'var(--green)':cls==='warn'?'var(--amber)':'var(--red)')+'">'+pct+'%</span><div class="comp-bar" style="flex:1"><div class="comp-fill comp-'+cls+'" style="width:'+pct+'%"></div></div></div></td>'
         +'<td><button class="btn bo bsm" onclick="editarMedico(''+m.id+'')">Completar</button></td>'
         +'</tr>';
-    }).join('')||'<tr><td colspan="8" class="empty" style="color:var(--green)">Todos los médicos tienen datos completos</td></tr>';
+    }).join('')||'<tr><td colspan="8" class="empty" style="color:var(--green)">Todos los medicos tienen datos completos</td></tr>';
   }
 
   // POR EJECUTIVO
@@ -1325,11 +1325,11 @@ function renderGestion(){
     const kpis=[
       {l:'Visitas documentadas',v:vZ.length,m:20,u:'/20 meta mes'},
       {l:'Nuevos prospectos C',v:nuevoC,m:4,u:'/4 meta mes'},
-      {l:'Nuevos médicos',v:nuevosMed,m:5,u:'/5 meta mes'},
+      {l:'Nuevos medicos',v:nuevosMed,m:5,u:'/5 meta mes'},
       {l:'Avances en funnel',v:avances,m:2,u:'/2 meta mes'},
-      {l:'Prospectos activos',v:prospActivos,m:15,u:'/15 mínimo'},
+      {l:'Prospectos activos',v:prospActivos,m:15,u:'/15 minimo'},
       {l:'Eventos/congresos',v:eventos,m:2,u:'/2 meta mes'},
-      {l:'Médicos completos',v:pctMed+'%',m:80,u:'/80% meta'},
+      {l:'Medicos completos',v:pctMed+'%',m:80,u:'/80% meta'},
       {l:'Alertas activas',v:alertasZ,m:0,u:'abiertas',c:'info'},
     ];
 
@@ -1337,7 +1337,7 @@ function renderGestion(){
       +'<div class="rep-header">'
       +'<div class="rep-zona" style="background:'+(zona==='Cali'?'var(--green)':'var(--blue)')+'">'+zona+'</div>'
       +'<div class="rep-title">Representante Comercial &mdash; '+zona+'</div>'
-      +'<span style="font-size:11px;color:#888">'+cZ.length+' cuentas &middot; '+mZ.length+' médicos &middot; '+cAlerta+' alertas cuenta</span>'
+      +'<span style="font-size:11px;color:#888">'+cZ.length+' cuentas &middot; '+mZ.length+' medicos &middot; '+cAlerta+' alertas cuenta</span>'
       +'</div>'
       +'<div class="rep-body">'
       +'<div class="kpi-grid">'+kpis.map(k=>{
@@ -1351,7 +1351,7 @@ function renderGestion(){
           +'</div>';
       }).join('')+'</div>'
       // Visitas recientes
-      +'<div style="font-size:10px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Últimas visitas registradas</div>'
+      +'<div style="font-size:10px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Ultimas visitas registradas</div>'
       +(vZ.length?vZ.slice(0,4).map(v=>'<div style="display:flex;gap:10px;padding:5px 0;border-bottom:1px solid #f0f0f0;font-size:11px"><span style="color:#aaa;white-space:nowrap">'+v.fecha+'</span><strong>'+v.cliente+'</strong><span style="color:#888">'+v.tipo+'</span><span style="color:'+(v.resultado==='Positivo'?'var(--green)':v.resultado==='Negativo'?'var(--red)':'var(--amber)')+'">'+v.resultado+'</span></div>').join(''):'<div style="font-size:11px;color:#ccc;text-align:center;padding:12px">Sin visitas registradas este mes</div>')
       +'</div></div>';
   }).join('');
