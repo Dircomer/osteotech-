@@ -180,6 +180,29 @@ td.r{text-align:right}th.r{text-align:right}
 .acc-item{padding:8px 10px;background:#fff;border-radius:7px;margin-bottom:6px;border:1px solid var(--bdr)}
 .acc-txt{font-size:11px;color:#555;line-height:1.5}
 .acc-meta{font-size:10px;color:#aaa;margin-top:4px}
+
+/* CCQ MODULE */
+.ccq-upload{border:2px dashed var(--teal);border-radius:10px;padding:24px;text-align:center;background:var(--tl);cursor:pointer;transition:all .2s}
+.ccq-upload:hover{background:var(--teal);color:#fff}
+.ccq-upload input{display:none}
+.ccq-stat{background:#fff;border-radius:9px;border:1px solid var(--bdr);padding:12px 14px}
+.ccq-stat .kl{font-size:9px;color:#aaa;text-transform:uppercase;letter-spacing:.07em;margin-bottom:2px}
+.ccq-stat .kv{font-size:22px;font-weight:800;line-height:1.1}
+.ccq-stat .ks{font-size:10px;color:#bbb;margin-top:2px}
+.tasa-bar{height:6px;background:#f0f0f0;border-radius:3px;overflow:hidden;margin-top:6px}
+.tasa-fill{height:6px;border-radius:3px}
+.med-row{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid #f0f0f0}
+.med-row:last-child{border-bottom:none}
+.ccq-tag{display:inline-block;font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px}
+.tag-t{background:#E1F5EE;color:#0F6E56}
+.tag-r{background:#EDE9FE;color:#6D28D9}
+.tag-ok{background:#D1FAE5;color:#065F46}
+.tag-warn{background:#FEF3C7;color:#92400E}
+.tag-red{background:#FEE2E2;color:#991B1B}
+.causa-row{display:flex;align-items:center;gap:8px;padding:5px 0;font-size:11px;border-bottom:1px solid #f5f5f5}
+.causa-bar-wrap{flex:1;height:6px;background:#f0f0f0;border-radius:3px;overflow:hidden}
+.causa-bar-fill{height:6px;border-radius:3px;background:var(--amber)}
+
 @media(max-width:800px){.krow,.fcols,.two,.dgg{grid-template-columns:1fr 1fr}.kgrid{grid-template-columns:1fr 1fr}}
 @media(max-width:500px){.krow,.dgg,.kgrid,.mini-kpis{grid-template-columns:1fr}.fgrid.g3,.fgrid.g2{grid-template-columns:1fr}}
 </style>
@@ -218,6 +241,7 @@ td.r{text-align:right}th.r{text-align:right}
     <button class="nt" onclick="goTo('funnel',this)">Funnel</button>
     <button class="nt" onclick="goTo('visitas',this)">Visitas</button>
     <button class="nt" onclick="goTo('alertas',this)">Alertas</button>
+    <button class="nt" id="tab-ccq" style="display:none" onclick="goTo('ccq',this)">CCQ</button>
     <button class="nt" id="tab-gest" style="display:none" onclick="goTo('gestion',this)">Gestion</button>
   </div>
   <div class="nr">
@@ -234,6 +258,8 @@ td.r{text-align:right}th.r{text-align:right}
 <div class="page active" id="page-dash">
   <div class="pt" id="d-tit">Panel</div><div class="ps" id="d-sub">OSTEOTECH</div>
   <div class="krow" id="d-kpis"></div>
+  <!-- CCQ BANNER -->
+  <div id="d-ccq-badge" style="margin-bottom:12px"></div>
   <!-- BARRA PROGRESO VISITAS (solo representantes) -->
   <div id="prog-sec" style="display:none">
     <div class="prog-wrap">
@@ -363,6 +389,93 @@ td.r{text-align:right}th.r{text-align:right}
   </table></div></div>
 </div>
 
+<!-- CCQ PAGE - Director only -->
+<div class="page" id="page-ccq">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+    <div>
+      <div class="pt">Central de Coordinacion Quirurgica</div>
+      <div class="ps" id="ccq-sub">Carga el reporte mensual CCQ para actualizar los indicadores</div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <span id="ccq-last-load" style="font-size:11px;color:#aaa"></span>
+      <label class="btn bt" style="cursor:pointer;display:inline-block;padding:5px 11px;font-size:11px;font-weight:600;border-radius:6px">
+        Cargar archivo CCQ
+        <input type="file" id="ccq-file-input" accept=".xlsx,.xls" style="display:none" onchange="cargarArchivoCCQ(this)">
+      </label>
+    </div>
+  </div>
+
+  <!-- UPLOAD ZONE (visible when no data) -->
+  <div id="ccq-upload-zone" style="margin-bottom:16px">
+    <label class="ccq-upload" style="display:block">
+      <input type="file" accept=".xlsx,.xls" style="display:none" onchange="cargarArchivoCCQ(this)">
+      <div style="font-size:32px;margin-bottom:8px">&#128196;</div>
+      <div style="font-size:14px;font-weight:700;color:var(--navy);margin-bottom:4px">Arrastra o haz clic para cargar el reporte CCQ</div>
+      <div style="font-size:12px;color:#888">Formato: FORMATO_CONTROL_PROGRAMACION.xlsx | PROGRAMA 2026</div>
+    </label>
+  </div>
+
+  <!-- RESUMEN KPIs -->
+  <div id="ccq-kpis" style="display:none">
+    <div class="sec">Resumen del Periodo Cargado</div>
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:16px" id="ccq-kpi-row"></div>
+
+    <div class="two" style="margin-bottom:16px">
+      <!-- Evolucion por mes -->
+      <div class="card">
+        <div class="ch"><div class="ct">Cirugias por Mes</div></div>
+        <div class="cb" id="ccq-meses"></div>
+      </div>
+      <!-- Causas de cancelacion -->
+      <div class="card">
+        <div class="ch"><div class="ct">Causas de No Realizacion</div></div>
+        <div class="cb" id="ccq-causas"></div>
+      </div>
+    </div>
+
+    <!-- TOP MEDICOS -->
+    <div class="sec">Ranking de Medicos por Cirugias Ejecutadas</div>
+    <div class="card" style="margin-bottom:16px">
+      <div class="cb" id="ccq-medicos"></div>
+    </div>
+
+    <!-- TOP CUENTAS -->
+    <div class="sec">Rendimiento por Cuenta</div>
+    <div class="card" style="margin-bottom:16px">
+      <div class="tw"><table>
+        <thead><tr>
+          <th>Cuenta</th>
+          <th class="r">Total Cx</th>
+          <th class="r">Realizadas</th>
+          <th class="r">Canceladas</th>
+          <th class="r">Aplazadas</th>
+          <th>Tasa</th>
+          <th>Mix</th>
+          <th>Alerta</th>
+        </tr></thead>
+        <tbody id="ccq-cuentas-tb"></tbody>
+      </table></div>
+    </div>
+
+    <!-- MIX DE PRODUCTO -->
+    <div class="two">
+      <div class="card">
+        <div class="ch"><div class="ct">Mix Trauma vs Reemplazo</div></div>
+        <div class="cb" id="ccq-mix"></div>
+      </div>
+      <div class="card">
+        <div class="ch"><div class="ct">Materiales mas Solicitados</div></div>
+        <div class="cb" id="ccq-materiales"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- LOADING -->
+  <div id="ccq-loading" style="display:none;text-align:center;padding:40px;color:#aaa;font-size:13px">
+    Procesando archivo CCQ... por favor espera.
+  </div>
+</div>
+
 </div><!-- /main -->
 
 <!-- ===== MODALES ===== -->
@@ -385,10 +498,43 @@ td.r{text-align:right}th.r{text-align:right}
           <option value="">Sin asignar</option>
           <option value="Representante Cali">Representante Cali</option>
           <option value="Representante Bogota">Representante Bogota</option>
+          <option value="Director Comercial">Director Comercial</option>
         </select>
       </div>
     </div>
     <div class="mf"><button class="btn bo" onclick="cerrar('m-cuenta')">Cancelar</button><button class="btn bp" onclick="guardarCuenta()">Guardar</button></div>
+  </div>
+</div>
+
+<!-- MODAL REASIGNAR CUENTA -->
+<div class="ov" id="m-reasignar">
+  <div class="modal" style="max-width:480px">
+    <div class="mh">
+      <div><div class="mt" id="m-ras-t">Asignar Representante</div><div style="font-size:10px;color:#aaa;margin-top:1px" id="m-ras-sub"></div></div>
+      <button class="mx" onclick="cerrar('m-reasignar')">&#10005;</button>
+    </div>
+    <div style="padding:16px">
+      <div class="fg" style="margin-bottom:12px">
+        <label>Estado de la cuenta</label>
+        <select id="ras-estado">
+          <option value="Activa">Activa</option>
+          <option value="Alerta">Alerta - Requiere atencion</option>
+          <option value="Inactiva">Inactiva</option>
+        </select>
+      </div>
+      <div class="fg" style="margin-bottom:12px">
+        <label>Representante asignado</label>
+        <select id="ras-rep"></select>
+      </div>
+      <div class="fg">
+        <label>Nota de la asignacion (opcional)</label>
+        <textarea id="ras-nota" placeholder="Razon del cambio, instrucciones especiales..." style="min-height:70px"></textarea>
+      </div>
+    </div>
+    <div class="mf">
+      <button class="btn bo" onclick="cerrar('m-reasignar')">Cancelar</button>
+      <button class="btn bp" onclick="guardarReasignacion()">Guardar asignacion</button>
+    </div>
   </div>
 </div>
 
@@ -567,12 +713,9 @@ td.r{text-align:right}th.r{text-align:right}
     </div>
     <div class="mf">
       <button class="btn bo" onclick="cerrar('m-gest-cuenta')">Cancelar</button>
-      <button class="btn bp" onclick="guardarGestionCuenta()">Guardar cambios</button>
-    </div>
-  </div>
-</div>
+      <button class="btn bp" onclick="guard<script>
 
-<script>
+
 // ========================================
 // SUPABASE CONFIG
 // ========================================
@@ -645,7 +788,11 @@ function iniciarCRM(){
   av.textContent=ini(D.user.nombre);
   document.getElementById('unm').textContent=D.user.nombre+' / '+(D.user.zona==='todas'?'Dir.':D.user.zona);
   // Tab Gestion solo para director
-  if(esDir()) document.getElementById('tab-gest').style.display='';
+  if(esDir()){
+    document.getElementById('tab-gest').style.display='';
+    var tCCQ=document.getElementById('tab-ccq');
+    if(tCCQ) tCCQ.style.display='';
+  }
   // Barra progreso solo para representantes
   document.getElementById('prog-sec').style.display=esDir()?'none':'block';
   // Filtro territorio para director
@@ -683,6 +830,12 @@ async function cargarTodo(){
       sbG('alertas_comerciales',zf+'select=*')
     ]);
     D.cuentas=c;D.medicos=m;D.contactos=ct;D.prospectos=p;D.visitas=v;D.alertas=al;
+    // Load usuarios for director (to populate rep selector)
+    if(esDir()){
+      try{const u=await sbG('usuarios','activo=eq.true&select=id,nombre,zona');D.usuarios=u||[];}catch(e){D.usuarios=[];}
+    }
+    // Re-apply CCQ data if already loaded
+    if(D_CCQ) actualizarMedicosCCQ();
     ss('ok','En linea');
     render();
   }catch(e){ss('err','Error de conexion');console.error(e);}
@@ -698,6 +851,7 @@ function goTo(id,btn){
   if(btn)btn.classList.add('active');
   if(id==='gestion')rGestion();
   if(id==='alertas')rAlertas();
+  if(id==='ccq')rCCQ();
 }
 
 // ========================================
@@ -775,6 +929,39 @@ function rDash(){
       return '<div class="mk" style="background:'+(ok?'var(--tl)':'var(--al))')+'"><div class="mk-l">'+k.l+'</div><div class="mk-v" style="color:'+(ok?'var(--green)':'var(--amber)')+'">'+k.v+'</div><div class="mk-u">'+k.u+'</div></div>';
     }).join('');
   }
+  // CCQ summary badge in dashboard
+  var ccqBadge = document.getElementById('d-ccq-badge');
+  if(ccqBadge){
+    if(D_CCQ){
+      var tt = D_CCQ.totales;
+      var tasaCCQ = tt.total>0?Math.round(tt.realizada/tt.total*100):0;
+      var colCCQ = tasaCCQ>=75?'var(--green)':tasaCCQ>=60?'var(--amber)':'var(--red)';
+      // Para representantes: filtrar solo sus medicos con datos CCQ
+      var medConCCQ = D.medicos.filter(function(m){return m._ccq&&m._ccq.realizada>0;});
+      var totalCxRep = medConCCQ.reduce(function(s,m){return s+m._ccq.realizada;},0);
+      if(esDir()){
+        ccqBadge.innerHTML = '<div style="background:var(--gl);border-radius:8px;padding:8px 14px;font-size:11px;display:flex;gap:14px;align-items:center;flex-wrap:wrap">'
+          +'<span style="color:var(--green);font-weight:700;font-size:12px">CCQ cargado</span>'
+          +'<span style="color:#555">'+tt.total+' Cx programadas</span>'
+          +'<span style="font-weight:700;color:'+colCCQ+'">'+tt.realizada+' realizadas ('+tasaCCQ+'%)</span>'
+          +'<span style="color:#888">'+tt.cancelada+' canceladas</span>'
+          +'<button class="btn bt bsm" onclick="var tabs=document.querySelectorAll('.nt');tabs.forEach(function(t){t.classList.remove('active');});var ccqTab=document.getElementById('tab-ccq');if(ccqTab){ccqTab.classList.add('active');}goTo('ccq',null)">Ver analisis CCQ</button>'
+          +'</div>';
+      } else {
+        // Rep: muestra solo cirugias de sus medicos asignados
+        ccqBadge.innerHTML = '<div style="background:var(--tl);border-radius:8px;padding:8px 14px;font-size:11px;display:flex;gap:14px;align-items:center;flex-wrap:wrap">'
+          +'<span style="color:var(--teal);font-weight:700;font-size:12px">Mis medicos - CCQ</span>'
+          +(medConCCQ.length>0
+            ?'<span style="font-weight:700;color:var(--green)">'+totalCxRep+' Cx realizadas</span>'
+             +'<span style="color:#888">en '+medConCCQ.length+' medicos de mi territorio</span>'
+             +'<button class="btn bt bsm" onclick="document.querySelectorAll('.nt').forEach(function(t){t.classList.remove('active');});document.querySelector('[onclick*=medicos]').classList.add('active');goTo('medicos',document.querySelector('[onclick*=medicos]'))">Ver mis medicos</button>'
+            :'<span style="color:#aaa">Datos CCQ disponibles - ve a Medicos para ver el detalle</span>')
+          +'</div>';
+      }
+    } else if(esDir()){
+      ccqBadge.innerHTML = '<div style="background:#f5f5f5;border-radius:8px;padding:8px 12px;font-size:11px;color:#aaa;display:flex;align-items:center;gap:10px">Sin datos CCQ - <button class="btn bo bsm" onclick="var tabs=document.querySelectorAll('.nt');tabs.forEach(function(t){t.classList.remove('active');});var ccqTab=document.getElementById('tab-ccq');if(ccqTab){ccqTab.classList.add('active');}goTo('ccq',null)">Cargar archivo CCQ</button></div>';
+    }
+  }
   // Alertas panel
   document.getElementById('d-alertas').innerHTML=D.cuentas.filter(c=>c.estado==='Alerta').slice(0,4).map(c=>'<div style="border-left:3px solid var(--amber);padding:5px 9px;margin-bottom:5px;font-size:11px;background:var(--al);border-radius:0 5px 5px 0"><strong>'+c.nombre+'</strong>'+(esDir()?' / '+c.territorio:'')+'<br><span style="font-size:10px;color:#666">'+(c.obs||'').substring(0,80)+'</span></div>').join('')||'<div class="empty">Sin alertas</div>';
   document.getElementById('d-meds').innerHTML=D.medicos.filter(m=>m.categoria==='A').slice(0,4).map(m=>'<div style="display:flex;align-items:center;gap:7px;padding:4px 0;border-bottom:1px solid #f0f0f0"><div class="av" style="background:'+avBg(m.nombre)+';width:24px;height:24px;font-size:9px;flex-shrink:0">'+ini(m.nombre)+'</div><div style="font-size:11px;font-weight:700">'+m.nombre+'<div style="font-size:10px;color:#aaa;font-weight:400">'+(m.institucion||'')+'</div></div></div>').join('')||'<div class="empty">Sin medicos cat A</div>';
@@ -791,6 +978,18 @@ function abrirCuenta(id){
   // Mostrar campo representante solo para director
   const repWrap=document.getElementById('mc-rep-wrap');
   if(repWrap) repWrap.style.display=esDir()?'':'none';
+  // Poblar select representante con usuarios reales si hay
+  if(esDir()){
+    const repSel2=document.getElementById('mc-rep');
+    if(repSel2&&D.usuarios&&D.usuarios.length){
+      // Build options from real users
+      const baseOpts='<option value="">Sin asignar</option>';
+      const userOpts=D.usuarios.map(function(u){
+        return '<option value="'+u.nombre+'">'+u.nombre+' ('+u.zona+')</option>';
+      }).join('');
+      repSel2.innerHTML=baseOpts+userOpts;
+    }
+  }
   if(id){
     const c=D.cuentas.find(x=>x.id===id);if(!c)return;
     document.getElementById('mc-n').value=c.nombre||'';
@@ -836,7 +1035,8 @@ function rCuentas(){
       +(c.obs?'<div style="font-size:10px;color:#888;margin-top:3px">'+c.obs.substring(0,100)+'</div>':'')
       +'</div>'
       +'<div style="display:flex;gap:6px;align-items:center">'
-      +'<button class="btn bo bsm" onclick="event.stopPropagation();abrirCuenta(\''+c.id+'\')">Editar</button>'
+      +'<button class="btn bo bsm" onclick="event.stopPropagation();abrirCuenta(''+c.id+'')">Editar</button>'
+      +(esDir()?'<button class="btn bg bsm" data-reasignar="'+c.id+'" onclick="event.stopPropagation();abrirReasignar(''+c.id+'')">Asignar Rep</button>':'')
       +'<span class="xicon">v</span>'
       +'</div></div>'
       +'<div class="ccb" id="cb-'+c.id+'">'
@@ -989,17 +1189,48 @@ async function guardarMedico(){
 }
 
 function rMedicos(){
-  const q=(document.getElementById('q-m').value||'').toLowerCase();
-  const fc=document.getElementById('f-mcat').value;
-  const lista=D.medicos.filter(m=>(!q||(m.nombre||'').toLowerCase().includes(q)||(m.institucion||'').toLowerCase().includes(q))&&(!fc||m.categoria===fc));
-  document.getElementById('medicos-grid').innerHTML=!lista.length?'<div class="empty">Sin medicos</div>':lista.map(m=>'<div class="mc" onclick="abrirMedico(\''+m.id+'\')"><div style="display:flex;align-items:flex-start;gap:9px"><div class="av" style="background:'+avBg(m.nombre)+';width:30px;height:30px;font-size:11px;margin-top:2px;flex-shrink:0">'+ini(m.nombre)+'</div><div style="flex:1"><div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap"><strong style="font-size:12px">'+m.nombre+'</strong><span style="font-size:9px;font-weight:700;color:'+catCol(m.categoria)+';background:'+catBg(m.categoria)+';padding:1px 5px;border-radius:3px">'+m.categoria+'</span>'+(esDir()?tbdg(m.territorio):'')+(m.figura==='si'?'<span style="font-size:10px">[figura]</span>':'')+'</div><div style="font-size:10px;color:#666;margin-top:2px">'+(m.especialidad||'')+' / '+(m.institucion||'')+'</div><div style="display:flex;gap:10px;margin-top:4px;flex-wrap:wrap">'+(m.cel?'<span style="font-size:10px">Tel: '+m.cel+'</span>':'')+(m.mail?'<span style="font-size:10px">Email: '+m.mail+'</span>':'')+(m.bday?'<span style="font-size:10px">Cum: '+m.bday+'</span>':'')+(m.marca?'<span style="font-size:10px;color:var(--amber)">Usa: '+m.marca+'</span>':'')+'</div>'+(m.notas?'<div style="font-size:9px;color:#999;margin-top:4px;border-top:1px solid #f0f0f0;padding-top:3px">'+m.notas.substring(0,120)+'</div>':'')+'</div></div></div>').join('');
+  var q=(document.getElementById('q-m').value||'').toLowerCase();
+  var fc=document.getElementById('f-mcat').value;
+  var lista=D.medicos.filter(function(m){
+    return(!q||(m.nombre||'').toLowerCase().includes(q)||(m.institucion||'').toLowerCase().includes(q))&&(!fc||m.categoria===fc);
+  });
+  document.getElementById('medicos-grid').innerHTML=!lista.length?'<div class="empty">Sin medicos</div>':lista.map(function(m){
+    // CCQ badge - visible para todos los perfiles (datos ya filtrados por zona)
+    var ccqBadge='';
+    if(m._ccq&&m._ccq.realizada>0){
+      var tCCQ=m._ccq.total>0?Math.round(m._ccq.realizada/m._ccq.total*100):0;
+      var cCCQ=tCCQ>=80?'var(--green)':tCCQ>=60?'var(--amber)':'var(--red)';
+      ccqBadge='<div style="margin-top:5px;padding:5px 8px;background:#F0FDF4;border-radius:6px;border:1px solid #D1FAE5;display:flex;gap:8px;align-items:center;flex-wrap:wrap">'
+        +'<span style="font-size:10px;font-weight:700;color:var(--green)">CCQ</span>'
+        +'<span style="font-size:11px;font-weight:800;color:'+cCCQ+'">'+m._ccq.realizada+' Cx realizadas</span>'
+        +'<span style="font-size:10px;color:#aaa">/ '+m._ccq.total+' programadas ('+tCCQ+'%)</span>'
+        +(m._ccq.materiales&&m._ccq.materiales['TRAUMA']>0?'<span class="ccq-tag tag-t">Trauma: '+m._ccq.materiales['TRAUMA']+'</span>':'')
+        +(m._ccq.materiales&&m._ccq.materiales['REEMPLAZO']>0?'<span class="ccq-tag tag-r">Reemplazo: '+m._ccq.materiales['REEMPLAZO']+'</span>':'')
+        +'</div>';
+    }
+    return '<div class="mc" onclick="abrirMedico(\''+m.id+'\')">'
+      +'<div style="display:flex;align-items:flex-start;gap:9px">'
+      +'<div class="av" style="background:'+avBg(m.nombre)+';width:30px;height:30px;font-size:11px;margin-top:2px;flex-shrink:0">'+ini(m.nombre)+'</div>'
+      +'<div style="flex:1">'
+      +'<div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap">'
+      +'<strong style="font-size:12px">'+m.nombre+'</strong>'
+      +'<span style="font-size:9px;font-weight:700;color:'+catCol(m.categoria)+';background:'+catBg(m.categoria)+';padding:1px 5px;border-radius:3px">'+m.categoria+'</span>'
+      +(esDir()?tbdg(m.territorio):'')
+      +(m.figura==='si'?'<span style="font-size:10px;color:var(--teal)">[figura]</span>':'')
+      +(m._ccq&&m._ccq.realizada>0?'<span class="ccq-tag tag-ok">'+m._ccq.realizada+' Cx</span>':'')
+      +'</div>'
+      +'<div style="font-size:10px;color:#666;margin-top:2px">'+(m.especialidad||'')+' / '+(m.institucion||'')+'</div>'
+      +'<div style="display:flex;gap:10px;margin-top:4px;flex-wrap:wrap">'
+      +(m.cel?'<span style="font-size:10px">Tel: '+m.cel+'</span>':'')
+      +(m.mail?'<span style="font-size:10px">Email: '+m.mail+'</span>':'')
+      +(m.bday?'<span style="font-size:10px">Cum: '+m.bday+'</span>':'')
+      +(m.marca?'<span style="font-size:10px;color:var(--amber)">Usa: '+m.marca+'</span>':'')
+      +'</div>'
+      +ccqBadge
+      +(m.notas?'<div style="font-size:9px;color:#999;margin-top:4px;border-top:1px solid #f0f0f0;padding-top:3px">'+m.notas.substring(0,120)+'</div>':'')
+      +'</div></div></div>';
+  }).join('');
 }
-
-// ========================================
-// FUNNEL
-// ========================================
-const EC={C:'#2D3A8C',D:'#B45309',N:'#0F6E56',K:'#185FA5',A:'#059669'};
-const EN={C:'C-Contacto',D:'D-Docum.',N:'N-Negoc.',K:'K-Apertura',A:'A-Activo'};
 
 function abrirProspecto(id){
   D.editId=id;
@@ -1363,6 +1594,53 @@ function rAlertas(){
 // ========================================
 // GESTION CUENTA EN ALERTA
 // ========================================
+// ========================================
+// REASIGNACION DE CUENTAS (Director)
+// ========================================
+var cuentaReasignarId = null;
+
+function abrirReasignar(id){
+  if(!esDir())return;
+  var c=D.cuentas.find(function(x){return x.id===id;});
+  if(!c)return;
+  cuentaReasignarId=id;
+  document.getElementById('m-ras-t').textContent='Asignar representante: '+c.nombre;
+  document.getElementById('m-ras-sub').textContent=c.territorio+' | Prom: $'+c.prom+'M/mes';
+  document.getElementById('ras-estado').value=c.estado||'Activa';
+  document.getElementById('ras-nota').value='';
+  var repSel=document.getElementById('ras-rep');
+  var opts='<option value="">Sin asignar</option>';
+  if(D.usuarios&&D.usuarios.length){
+    D.usuarios.filter(function(u){return u.zona!=='todas';}).forEach(function(u){
+      opts+='<option value="'+u.nombre+'"'+(c.representante===u.nombre?' selected':'')+'>'+u.nombre+' ('+u.zona+')</option>';
+    });
+  } else {
+    opts+='<option value="Representante Cali"'+(c.representante==='Representante Cali'?' selected':'')+'>Representante Cali</option>';
+    opts+='<option value="Representante Bogota"'+(c.representante==='Representante Bogota'?' selected':'')+'>Representante Bogota</option>';
+  }
+  repSel.innerHTML=opts;
+  abrir('m-reasignar');
+}
+
+async function guardarReasignacion(){
+  if(!cuentaReasignarId)return;
+  ss('saving','Guardando...');
+  var nuevoRep=document.getElementById('ras-rep').value;
+  var nuevoEstado=document.getElementById('ras-estado').value;
+  var nota=(document.getElementById('ras-nota').value||'').trim();
+  var c=D.cuentas.find(function(x){return x.id===cuentaReasignarId;});
+  var obsActual=(c&&c.obs)||'';
+  var obsNueva=nota?(obsActual?(obsActual+'
+'):'')+'['+new Date().toLocaleDateString('es-CO')+'] Reasignacion a '+nuevoRep+': '+nota:obsActual;
+  try{
+    await sbU('cuentas',cuentaReasignarId,{representante:nuevoRep,estado:nuevoEstado,obs:obsNueva,updated_at:now()});
+    await cargarTodo();
+    ss('ok','Cuenta reasignada: '+(nuevoRep||'Sin asignar'));
+    cerrar('m-reasignar');
+  }catch(e){ss('err','Error');alert('Error: '+e.message);}
+}
+
+
 var cuentaActivaId=null;
 
 function abrirGestionCuenta(id){
@@ -1478,11 +1756,457 @@ function rGestion(){
   }).join('')||'<tr><td colspan="8" class="empty" style="color:var(--green)">Todos los medicos tienen datos completos</td></tr>';
 }
 
+
+// ========================================
+// CCQ - CARGA Y ANALISIS DE ARCHIVO
+// ========================================
+var D_CCQ = null; // CCQ data in memory
+
+function rCCQ(){
+  if(!esDir())return;
+  if(D_CCQ){
+    renderCCQDashboard();
+  }
+  // else show upload zone
+}
+
+function cargarArchivoCCQ(input){
+  var file = input.files[0];
+  if(!file)return;
+  document.getElementById('ccq-upload-zone').style.display='none';
+  document.getElementById('ccq-loading').style.display='block';
+  document.getElementById('ccq-kpis').style.display='none';
+
+  var reader = new FileReader();
+  reader.onload = function(e){
+    try{
+      // Parse Excel using SheetJS
+      if(typeof XLSX === 'undefined'){
+        // Load SheetJS dynamically
+        var script = document.createElement('script');
+        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+        script.onload = function(){
+          procesarExcelCCQ(e.target.result, file.name);
+        };
+        document.head.appendChild(script);
+      } else {
+        procesarExcelCCQ(e.target.result, file.name);
+      }
+    }catch(err){
+      alert('Error al leer el archivo: '+err.message);
+      document.getElementById('ccq-loading').style.display='none';
+      document.getElementById('ccq-upload-zone').style.display='block';
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function procesarExcelCCQ(buffer, filename){
+  try{
+    var wb = XLSX.read(buffer, {type:'array', cellDates:true});
+    // Find sheet PROGRAMA 2026 or PROGAMA
+    var sheetName = wb.SheetNames.find(function(n){return n.includes('PROGRAMA') || n.includes('PROGAMA');}) || wb.SheetNames[0];
+    var ws = wb.Sheets[sheetName];
+    var raw = XLSX.utils.sheet_to_json(ws, {header:1, defval:''});
+
+    // Find header row (contains CONSECUTIVO or FECHA)
+    var headerRow = -1;
+    for(var i=0;i<Math.min(raw.length,15);i++){
+      var r = raw[i].map(function(v){return String(v).toUpperCase();});
+      if(r.some(function(v){return v.includes('CONSECUTIVO')||v.includes('FECHA DE CIRUGIA');})){
+        headerRow = i;
+        break;
+      }
+    }
+    if(headerRow < 0){ alert('No se encontro la fila de encabezados en el archivo.'); return; }
+
+    var headers = raw[headerRow].map(function(v){return String(v).trim().toUpperCase();});
+    
+    // Column indices
+    var COL = {
+      ccq: headers.findIndex(function(h){return h.includes('CONSECUTIVO');}),
+      fecha: headers.findIndex(function(h){return h.includes('FECHA DE CIRUGIA');}),
+      hora_prog: headers.findIndex(function(h){return h.includes('HORA PROGRAMA');}),
+      hora_real: headers.findIndex(function(h){return h.includes('HORA REALIZA');}),
+      nit: headers.findIndex(function(h){return h==='NIT';}),
+      cliente: headers.findIndex(function(h){return h.includes('CLIENTE');}),
+      institucion: headers.findIndex(function(h){return h.includes('INSTITUCION');}),
+      ciudad: headers.findIndex(function(h){return h.includes('CIUDAD');}),
+      paciente: headers.findIndex(function(h){return h.includes('PACIENTE');}),
+      especialista: headers.findIndex(function(h){return h.includes('ESPECIALISTA');}),
+      material: headers.findIndex(function(h){return h.includes('MATERIAL');}),
+      estado: headers.findIndex(function(h){return h.includes('ESTADO');}),
+      instrumentador: headers.findIndex(function(h){return h.includes('INSTRUMENTADOR');}),
+      causa: headers.findIndex(function(h){return h.includes('CAUSA');}),
+      obs_gasto: headers.findIndex(function(h){return h.includes('OBSERVACIONES GASTO');}),
+      fecha_sol: headers.findIndex(function(h){return h.includes('SOLICITUD');}),
+      disp: headers.findIndex(function(h){return h.includes('DISPONIBILIDAD');}),
+      tiempo_alm: headers.findIndex(function(h){return h.includes('TIEMPO ALMACEN')||h.includes('RSPUESTA');}),
+    };
+
+    // Parse data rows
+    var rows = [];
+    for(var i=headerRow+1; i<raw.length; i++){
+      var r = raw[i];
+      if(!r || r.every(function(v){return !v||String(v).trim()===''||String(v).trim()==='\xa0';})) continue;
+      var fecha = COL.fecha>=0?r[COL.fecha]:'';
+      // Only rows with a date
+      if(!fecha) continue;
+      var fechaStr = '';
+      if(fecha instanceof Date){
+        fechaStr = fecha.toISOString().substring(0,10);
+      } else if(typeof fecha === 'string' && fecha.match(/\d{4}/)){
+        fechaStr = fecha.substring(0,10);
+      } else if(typeof fecha === 'number'){
+        // Excel serial date
+        var d = new Date(Math.round((fecha-25569)*86400*1000));
+        fechaStr = d.toISOString().substring(0,10);
+      }
+      if(!fechaStr || !fechaStr.match(/^20[0-9]{2}/)) continue;
+
+      var esp = COL.especialista>=0?String(r[COL.especialista]||'').trim():'';
+      // Normalize "DR DE TURNO" variants
+      if(esp.toUpperCase().replace(/[\s.]/g,'').includes('DETURNO')) esp = '';
+
+      var mat = COL.material>=0?String(r[COL.material]||'').trim():'';
+      var est = COL.estado>=0?String(r[COL.estado]||'').trim().toUpperCase():'';
+      var causa = COL.causa>=0?String(r[COL.causa]||'').trim():'';
+      var cliente = COL.cliente>=0?String(r[COL.cliente]||'').trim():'';
+      var inst = COL.institucion>=0?String(r[COL.institucion]||'').trim():'';
+
+      if(!cliente) continue;
+
+      // Classify material
+      var tipoMat = 'OTRO';
+      var matU = mat.toUpperCase();
+      if(/REEMPLAZO|RTR|RTC|RODILLA|CADERA|BIPOLAR|ARTROPLASTIA/.test(matU)) tipoMat = 'REEMPLAZO';
+      else if(/CLAVO|PLACA|TORNILLO|TUTOR|EXTRACCION|RAFI|LCP|DHS|PFNA|CANULADO|CLAVICULA|PERONE|HUMERO|TIBIA|FEMUR|RADIO|CUBITO|OLECRANON|MINIFRAG/.test(matU)) tipoMat = 'TRAUMA';
+
+      rows.push({
+        ccq: COL.ccq>=0?String(r[COL.ccq]||'').trim():'',
+        fecha: fechaStr,
+        mes: fechaStr.substring(0,7),
+        cliente: cliente,
+        institucion: inst,
+        ciudad: COL.ciudad>=0?String(r[COL.ciudad]||'').trim():'',
+        especialista: esp,
+        material: mat,
+        tipoMat: tipoMat,
+        estado: est,
+        causa: causa,
+        instrumentador: COL.instrumentador>=0?String(r[COL.instrumentador]||'').trim():'',
+        tiempo_alm: COL.tiempo_alm>=0?String(r[COL.tiempo_alm]||'').trim():'',
+      });
+    }
+
+    if(rows.length===0){ alert('No se encontraron datos validos en el archivo.'); return; }
+
+    // Aggregate
+    D_CCQ = agregarCCQ(rows, filename);
+    document.getElementById('ccq-loading').style.display='none';
+    document.getElementById('ccq-kpis').style.display='block';
+    var sub = document.getElementById('ccq-sub');
+    if(sub) sub.textContent = rows.length+' registros cargados - '+filename;
+    var lbl = document.getElementById('ccq-last-load');
+    if(lbl) lbl.textContent = 'Cargado: '+new Date().toLocaleDateString('es-CO');
+    renderCCQDashboard();
+
+  }catch(err){
+    console.error(err);
+    alert('Error al procesar el archivo: '+err.message);
+    document.getElementById('ccq-loading').style.display='none';
+    document.getElementById('ccq-upload-zone').style.display='block';
+  }
+}
+
+function agregarCCQ(rows, filename){
+  var porCliente = {};
+  var porMedico = {};
+  var porMes = {};
+  var causas = {};
+  var materiales = {};
+  var totales = {total:0, realizada:0, cancelada:0, aplazada:0, trauma:0, reemplazo:0};
+
+  rows.forEach(function(r){
+    var cli = r.cliente;
+    var esp = r.especialista;
+    var mes = r.mes;
+    var est = r.estado;
+    var causa = r.causa;
+    var mat = r.material;
+    var tipo = r.tipoMat;
+
+    // Totales globales
+    totales.total++;
+    if(est==='REALIZADA'){totales.realizada++;}
+    else if(est==='CANCELADA'){totales.cancelada++;}
+    else if(est==='APLAZADA'){totales.aplazada++;}
+    if(tipo==='TRAUMA') totales.trauma++;
+    else if(tipo==='REEMPLAZO') totales.reemplazo++;
+
+    // Por cliente
+    if(!porCliente[cli]) porCliente[cli]={total:0,realizada:0,cancelada:0,aplazada:0,trauma:0,reemplazo:0,medicos:{}};
+    porCliente[cli].total++;
+    if(est==='REALIZADA') porCliente[cli].realizada++;
+    else if(est==='CANCELADA') porCliente[cli].cancelada++;
+    else if(est==='APLAZADA') porCliente[cli].aplazada++;
+    if(tipo==='TRAUMA') porCliente[cli].trauma++;
+    else if(tipo==='REEMPLAZO') porCliente[cli].reemplazo++;
+    if(esp){
+      if(!porCliente[cli].medicos[esp]) porCliente[cli].medicos[esp]=0;
+      porCliente[cli].medicos[esp]++;
+    }
+
+    // Por medico
+    if(esp){
+      if(!porMedico[esp]) porMedico[esp]={total:0,realizada:0,cancelada:0,clientes:new Set(),materiales:{}};
+      porMedico[esp].total++;
+      if(est==='REALIZADA') porMedico[esp].realizada++;
+      else if(est==='CANCELADA') porMedico[esp].cancelada++;
+      porMedico[esp].clientes.add(cli);
+      if(tipo && tipo!=='OTRO'){
+        if(!porMedico[esp].materiales[tipo]) porMedico[esp].materiales[tipo]=0;
+        porMedico[esp].materiales[tipo]++;
+      }
+    }
+
+    // Por mes
+    if(!porMes[mes]) porMes[mes]={total:0,realizada:0,cancelada:0,aplazada:0};
+    porMes[mes].total++;
+    if(est==='REALIZADA') porMes[mes].realizada++;
+    else if(est==='CANCELADA') porMes[mes].cancelada++;
+    else if(est==='APLAZADA') porMes[mes].aplazada++;
+
+    // Causas
+    if(causa && causa.length>2){
+      if(!causas[causa]) causas[causa]=0;
+      causas[causa]++;
+    }
+
+    // Materiales top
+    if(tipo!=='OTRO' && mat){
+      var matKey = mat.substring(0,25).toUpperCase();
+      if(!materiales[matKey]) materiales[matKey]={count:0,tipo:tipo};
+      materiales[matKey].count++;
+    }
+  });
+
+  // Convert Sets to arrays for JSON
+  Object.keys(porMedico).forEach(function(k){
+    porMedico[k].clientes = Array.from(porMedico[k].clientes);
+  });
+
+  return {
+    filename: filename,
+    rows: rows.length,
+    totales: totales,
+    porCliente: porCliente,
+    porMedico: porMedico,
+    porMes: porMes,
+    causas: causas,
+    materiales: materiales,
+    fechaCarga: new Date().toISOString()
+  };
+}
+
+function renderCCQDashboard(){
+  if(!D_CCQ)return;
+  var d = D_CCQ;
+  var t = d.totales;
+  var tasa = t.total>0?Math.round(t.realizada/t.total*100):0;
+
+  // KPI ROW
+  var kpiEl = document.getElementById('ccq-kpi-row');
+  if(kpiEl) kpiEl.innerHTML = [
+    {l:'Total Cirugias',v:t.total,s:'en el periodo',c:'var(--navy)'},
+    {l:'Realizadas',v:t.realizada,s:tasa+'% tasa cumplimiento',c:tasa>=75?'var(--green)':tasa>=60?'var(--amber)':'var(--red)'},
+    {l:'Canceladas',v:t.cancelada,s:Math.round(t.cancelada/t.total*100)+'% del total',c:'var(--red)'},
+    {l:'Aplazadas',v:t.aplazada,s:Math.round(t.aplazada/t.total*100)+'% del total',c:'var(--amber)'},
+    {l:'Mix Trauma/Reemplazo',v:t.trauma+'/'+t.reemplazo,s:Math.round(t.trauma/(t.trauma+t.reemplazo||1)*100)+'% Trauma',c:'var(--purple)'},
+  ].map(function(k){
+    return '<div class="ccq-stat"><div class="kl">'+k.l+'</div><div class="kv" style="color:'+k.c+'">'+k.v+'</div><div class="ks">'+k.s+'</div></div>';
+  }).join('');
+
+  // POR MES
+  var mesesEl = document.getElementById('ccq-meses');
+  if(mesesEl){
+    var meses = Object.keys(d.porMes).sort();
+    var maxTotal = Math.max.apply(null, meses.map(function(m){return d.porMes[m].total;}));
+    mesesEl.innerHTML = meses.map(function(mes){
+      var m = d.porMes[mes];
+      var tasa2 = m.total>0?Math.round(m.realizada/m.total*100):0;
+      var col = tasa2>=75?'var(--green)':tasa2>=60?'var(--amber)':'var(--red)';
+      var pct = maxTotal>0?Math.round(m.total/maxTotal*100):0;
+      var [y,mo] = mes.split('-');
+      var mNames=['','Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+      return '<div style="display:flex;align-items:center;gap:10px;padding:5px 0;border-bottom:1px solid #f5f5f5">'
+        +'<span style="font-size:11px;font-weight:700;color:var(--navy);min-width:55px">'+mNames[parseInt(mo)]+' '+y+'</span>'
+        +'<div style="flex:1;height:18px;background:#f0f0f0;border-radius:3px;overflow:hidden;position:relative">'
+        +'<div style="height:18px;background:'+col+';width:'+pct+'%;display:flex;align-items:center;padding:0 5px">'
+        +'<span style="font-size:9px;color:#fff;font-weight:700">'+m.realizada+'/'+m.total+'</span>'
+        +'</div></div>'
+        +'<span style="font-size:11px;font-weight:700;color:'+col+';min-width:38px;text-align:right">'+tasa2+'%</span>'
+        +'</div>';
+    }).join('');
+  }
+
+  // CAUSAS
+  var causasEl = document.getElementById('ccq-causas');
+  if(causasEl){
+    var causasArr = Object.entries(d.causas).sort(function(a,b){return b[1]-a[1];}).slice(0,10);
+    var maxC = causasArr.length>0?causasArr[0][1]:1;
+    if(!causasArr.length){
+      causasEl.innerHTML='<div class="empty">Sin causas registradas</div>';
+    } else {
+      causasEl.innerHTML = causasArr.map(function(pair){
+        var pct = Math.round(pair[1]/maxC*100);
+        var colorCausa = pair[0].toUpperCase().includes('OSTEOTECH')||pair[0].toUpperCase().includes('INTERNO')||pair[0].toUpperCase().includes('MATERIAL')||pair[0].toUpperCase().includes('TIEMPO')||pair[0].toUpperCase().includes('SOPORTE')?'var(--red)':'var(--amber)';
+        return '<div class="causa-row">'
+          +'<span style="font-size:10px;color:'+colorCausa+';font-weight:700;min-width:8px">&#9679;</span>'
+          +'<span style="font-size:10px;flex:1">'+pair[0]+'</span>'
+          +'<div class="causa-bar-wrap"><div class="causa-bar-fill" style="width:'+pct+'%;background:'+colorCausa+'"></div></div>'
+          +'<span style="font-size:10px;font-weight:700;color:'+colorCausa+';min-width:20px;text-align:right">'+pair[1]+'</span>'
+          +'</div>';
+      }).join('');
+    }
+  }
+
+  // MEDICOS RANKING
+  var medEl = document.getElementById('ccq-medicos');
+  if(medEl){
+    var medArr = Object.entries(d.porMedico)
+      .sort(function(a,b){return b[1].realizada-a[1].realizada;})
+      .slice(0,15);
+    var maxMed = medArr.length>0?medArr[0][1].realizada:1;
+    medEl.innerHTML = medArr.map(function(pair){
+      var nom = pair[0];
+      var m = pair[1];
+      var tasa2 = m.total>0?Math.round(m.realizada/m.total*100):0;
+      var col = tasa2>=80?'var(--green)':tasa2>=60?'var(--amber)':'var(--red)';
+      var barPct = maxMed>0?Math.round(m.realizada/maxMed*100):0;
+      var traum = m.materiales['TRAUMA']||0;
+      var reemp = m.materiales['REEMPLAZO']||0;
+      return '<div class="med-row">'
+        +'<div class="av" style="background:'+avBg(nom)+';width:28px;height:28px;font-size:10px;flex-shrink:0">'+ini(nom)+'</div>'
+        +'<div style="flex:1;min-width:0">'
+        +'<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">'
+        +'<span style="font-size:11px;font-weight:700">'+nom+'</span>'
+        +(traum>0?'<span class="ccq-tag tag-t">T:'+traum+'</span>':'')
+        +(reemp>0?'<span class="ccq-tag tag-r">R:'+reemp+'</span>':'')
+        +'<span style="font-size:10px;color:#aaa">'+m.clientes.length+' cuenta'+(m.clientes.length>1?'s':'')+'</span>'
+        +'</div>'
+        +'<div style="display:flex;align-items:center;gap:6px;margin-top:3px">'
+        +'<div style="flex:1;height:5px;background:#f0f0f0;border-radius:3px;overflow:hidden">'
+        +'<div style="height:5px;border-radius:3px;background:'+col+';width:'+barPct+'%"></div>'
+        +'</div>'
+        +'<span style="font-size:10px;font-weight:700;color:'+col+';white-space:nowrap">'+m.realizada+'/'+m.total+' ('+tasa2+'%)</span>'
+        +'</div>'
+        +'</div>'
+        +'</div>';
+    }).join('');
+  }
+
+  // CUENTAS TABLE
+  var tbEl = document.getElementById('ccq-cuentas-tb');
+  if(tbEl){
+    var cliArr = Object.entries(d.porCliente)
+      .sort(function(a,b){return b[1].total-a[1].total;})
+      .slice(0,20);
+    tbEl.innerHTML = cliArr.map(function(pair){
+      var nom = pair[0];
+      var c = pair[1];
+      var tasa2 = c.total>0?Math.round(c.realizada/c.total*100):0;
+      var col = tasa2>=75?'bok':tasa2>=60?'bwrn':'bred';
+      var alerta = tasa2<60?'<span class="ccq-tag tag-red">Tasa baja</span>':(c.cancelada>3?'<span class="ccq-tag tag-warn">Cx canceladas</span>':'');
+      var mix = '';
+      if(c.trauma>0&&c.reemplazo>0) mix='<span class="ccq-tag tag-t">T</span> <span class="ccq-tag tag-r">R</span>';
+      else if(c.trauma>0) mix='<span class="ccq-tag tag-t">Solo Trauma</span>';
+      else if(c.reemplazo>0) mix='<span class="ccq-tag tag-r">Solo Reemplazo</span>';
+      var tasaBar = '<div style="display:flex;align-items:center;gap:5px"><div class="tasa-bar" style="flex:1;width:60px"><div class="tasa-fill" style="width:'+tasa2+'%;background:'+(tasa2>=75?'var(--green)':tasa2>=60?'var(--amber)':'var(--red)')+'"></div></div><span style="font-size:10px;font-weight:700">'+tasa2+'%</span></div>';
+      return '<tr>'
+        +'<td><strong>'+nom+'</strong></td>'
+        +'<td class="r">'+c.total+'</td>'
+        +'<td class="r" style="color:var(--green);font-weight:700">'+c.realizada+'</td>'
+        +'<td class="r" style="color:var(--red)">'+c.cancelada+'</td>'
+        +'<td class="r" style="color:var(--amber)">'+c.aplazada+'</td>'
+        +'<td>'+tasaBar+'</td>'
+        +'<td>'+mix+'</td>'
+        +'<td>'+alerta+'</td>'
+        +'</tr>';
+    }).join('');
+  }
+
+  // MIX PIE-LIKE
+  var mixEl = document.getElementById('ccq-mix');
+  if(mixEl){
+    var tot = t.trauma + t.reemplazo;
+    var pctT = tot>0?Math.round(t.trauma/tot*100):0;
+    var pctR = tot>0?Math.round(t.reemplazo/tot*100):0;
+    mixEl.innerHTML = '<div style="padding:8px 0">'
+      +'<div style="display:flex;gap:4px;height:24px;border-radius:6px;overflow:hidden;margin-bottom:10px">'
+      +'<div style="flex:'+pctT+';background:var(--green);display:flex;align-items:center;justify-content:center;font-size:10px;color:#fff;font-weight:700">'+(pctT>10?pctT+'%':'')+'</div>'
+      +'<div style="flex:'+pctR+';background:var(--purple);display:flex;align-items:center;justify-content:center;font-size:10px;color:#fff;font-weight:700">'+(pctR>10?pctR+'%':'')+'</div>'
+      +'</div>'
+      +'<div style="display:flex;gap:16px;justify-content:center">'
+      +'<div style="text-align:center"><div style="font-size:22px;font-weight:800;color:var(--green)">'+t.trauma+'</div><div style="font-size:11px;color:#888">Trauma ('+pctT+'%)</div></div>'
+      +'<div style="text-align:center"><div style="font-size:22px;font-weight:800;color:var(--purple)">'+t.reemplazo+'</div><div style="font-size:11px;color:#888">Reemplazo ('+pctR+'%)</div></div>'
+      +'</div></div>';
+  }
+
+  // MATERIALES TOP
+  var matEl = document.getElementById('ccq-materiales');
+  if(matEl){
+    var matArr = Object.entries(d.materiales)
+      .sort(function(a,b){return b[1].count-a[1].count;})
+      .slice(0,12);
+    var maxMat = matArr.length>0?matArr[0][1].count:1;
+    matEl.innerHTML = matArr.map(function(pair){
+      var pct = Math.round(pair[1].count/maxMat*100);
+      var col = pair[1].tipo==='TRAUMA'?'var(--green)':'var(--purple)';
+      return '<div style="display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid #f5f5f5">'
+        +'<span style="font-size:10px;flex:1;color:#555">'+pair[0].substring(0,28)+'</span>'
+        +'<div style="width:60px;height:6px;background:#f0f0f0;border-radius:3px;overflow:hidden">'
+        +'<div style="height:6px;background:'+col+';width:'+pct+'%"></div></div>'
+        +'<span style="font-size:10px;font-weight:700;min-width:20px;text-align:right">'+pair[1].count+'</span>'
+        +'</div>';
+    }).join('');
+  }
+
+  // UPDATE MEDICOS IN MAIN DIRECTORY
+  actualizarMedicosCCQ();
+}
+
+function actualizarMedicosCCQ(){
+  // Update D.medicos with CCQ surgery counts
+  if(!D_CCQ||!D.medicos) return;
+  var medData = D_CCQ.porMedico;
+  D.medicos.forEach(function(med){
+    var nomNorm = med.nombre.toUpperCase().replace('DR.','DR').replace('DRA.','DRA').trim();
+    // Find in CCQ data (fuzzy match by surname)
+    var match = Object.keys(medData).find(function(k){
+      var kn = k.toUpperCase().replace('DR.','DR').replace('DRA.','DRA').trim();
+      return kn === nomNorm || 
+             (nomNorm.split(' ').length>1 && kn.includes(nomNorm.split(' ').slice(-1)[0])) ||
+             (kn.split(' ').length>1 && nomNorm.includes(kn.split(' ').slice(-1)[0]));
+    });
+    if(match){
+      med._ccq = medData[match];
+    }
+  });
+  // Re-render medicos if on that page
+  if(document.getElementById('page-medicos').classList.contains('active')){
+    rMedicos();
+  }
+}
+
+
 // ========================================
 // ARRANQUE
 // ========================================
 var ses=sessionStorage.getItem('ost_u');
 if(ses){try{D.user=JSON.parse(ses);iniciarCRM();}catch(e){sessionStorage.removeItem('ost_u');}}
+
+
 </script>
 </body>
 </html>
