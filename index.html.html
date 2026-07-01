@@ -209,6 +209,31 @@ td.r{text-align:right}th.r{text-align:right}
 <div class="page active" id="page-dashboard">
   <div class="pt" id="dash-titulo">Panel</div><div class="ps" id="dash-sub">OSTEOTECH</div>
   <div class="kpi-row" id="kpis"></div>
+  <!-- BARRA PROGRESO VISITAS — Solo Representante -->
+  <div id="rep-progress-bar" style="display:none;margin-bottom:12px">
+    <div style="background:#fff;border-radius:10px;border:1px solid var(--border);padding:14px 18px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <div>
+          <div style="font-size:13px;font-weight:700;color:var(--navy)">&#128197; Visitas del mes</div>
+          <div style="font-size:11px;color:#888" id="rep-progress-sub">Cargando...</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:28px;font-weight:800;color:var(--navy)" id="rep-progress-val">0</div>
+          <div style="font-size:11px;color:#888">de 20 meta mensual</div>
+        </div>
+      </div>
+      <div style="height:12px;background:#F0F0F0;border-radius:6px;overflow:hidden;margin-bottom:6px">
+        <div id="rep-progress-fill" style="height:12px;border-radius:6px;transition:width .6s;background:var(--green);width:0%"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:10px;color:#aaa">
+        <span id="rep-progress-pct">0% completado</span>
+        <span id="rep-progress-rest">20 visitas restantes</span>
+      </div>
+      <!-- Mini indicadores adicionales -->
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px;padding-top:10px;border-top:1px solid #f0f0f0" id="rep-mini-kpis"></div>
+    </div>
+  </div>
+
   <div class="two">
     <div>
       <div class="card"><div class="ch"><div class="ct">&#128308; Alertas</div></div><div class="cb" id="dash-alertas"><div class="loading">Cargando...</div></div></div>
@@ -368,7 +393,12 @@ td.r{text-align:right}th.r{text-align:right}
       <div class="fg"><label>Importancia</label><select id="ct-imp"><option value="Alta">&#11088;&#11088;&#11088; Alta &#8212; Decisor clave</option><option value="Media">&#11088;&#11088; Media &#8212; Influenciador</option><option value="Baja">&#11088; Baja &#8212; Operativo</option></select></div>
       <div class="fg"><label>Cargo / Rol</label><select id="ct-rol"><option>Jefe de Servicio</option><option>Coordinador de Compras</option><option>Director M&#233;dico</option><option>Gerente de Farmacia</option><option>Instrumentador</option><option>Jefe de Quir&#243;fano</option><option>Regente de Farmacia</option><option>Secretaria / Asistente</option><option>Gerente General</option><option>Facturaci&#243;n</option><option>Cartera</option><option>Otro</option></select></div>
       <div class="fg"><label>&#193;rea / Servicio</label><input id="ct-area" placeholder="Ortopedia, Compras, Quir&#243;fano..."></div>
-      <div class="fg"><label>Instituci&#243;n</label><input id="ct-inst" placeholder="Cl&#237;nica / Hospital"></div>
+      <div class="fg"><label>Instituci&#243;n (cuenta asignada)</label>
+        <select id="ct-inst-sel" onchange="seleccionarCuentaContacto()">
+          <option value="">Seleccionar cuenta...</option>
+        </select>
+        <input id="ct-inst" type="hidden" value="">
+      </div>
       <div class="fg"><label>Celular</label><input id="ct-cel" placeholder="300 000 0000" type="tel"></div>
       <div class="fg"><label>WhatsApp</label><input id="ct-wa" placeholder="300 000 0000" type="tel"></div>
       <div class="fg"><label>Email</label><input id="ct-mail" type="email" placeholder="correo@institucion.com"></div>
@@ -473,6 +503,41 @@ td.r{text-align:right}th.r{text-align:right}
   </div>
 </div>
 
+
+<!-- MODAL GESTIÓN DE ALERTA — Ver + Agregar acciones -->
+<div class="overlay" id="mal-detalle">
+  <div class="modal" style="max-width:600px">
+    <div class="mh">
+      <div>
+        <div class="mt" id="mald-titulo">Gestionar Alerta</div>
+        <div style="font-size:10px;color:#aaa;margin-top:1px" id="mald-meta"></div>
+      </div>
+      <button class="mclose" onclick="cerrarModal('mal-detalle')">&#10005;</button>
+    </div>
+    <!-- Detalle de la alerta -->
+    <div id="mald-detalle-body" style="padding:14px 16px;border-bottom:1px solid var(--border);background:#F8F9FF">
+    </div>
+    <!-- Historial de acciones -->
+    <div style="padding:14px 16px;border-bottom:1px solid var(--border)">
+      <div style="font-size:11px;font-weight:700;color:var(--navy);margin-bottom:8px">&#128203; Historial de Acciones</div>
+      <div id="mald-acciones-list" style="max-height:180px;overflow-y:auto"></div>
+    </div>
+    <!-- Nueva acción -->
+    <div style="padding:14px 16px">
+      <div style="font-size:11px;font-weight:700;color:var(--navy);margin-bottom:8px">&#10133; Registrar nueva acci&#243;n</div>
+      <div class="fg" style="margin-bottom:10px">
+        <label>Qu&#233; se hizo / Qu&#233; est&#225; pasando</label>
+        <textarea id="mald-nueva-accion" placeholder="Describe la accion tomada, el avance logrado, el compromiso adquirido..." style="min-height:80px"></textarea>
+      </div>
+    </div>
+    <div class="mf">
+      <button class="btn bo" onclick="cerrarModal('mal-detalle')">Cerrar</button>
+      <button class="btn bg" onclick="resolverDesdeDetalle()" id="btn-resolver-detalle">&#10003; Marcar como resuelta</button>
+      <button class="btn bp" onclick="guardarAccionAlerta()">Guardar acci&#243;n &#9749;</button>
+    </div>
+  </div>
+</div>
+
 <script>
 const SBU='https://biaudkmcyyshduoppyit.supabase.co';
 const SBK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJpYXVka21jeXlzaGR1b3BweWl0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI5MzA4NzcsImV4cCI6MjA5ODUwNjg3N30.osTmfUY9jtexPCVLYBiewALUnHYsM7a-UFajgSP0lTM';
@@ -514,6 +579,9 @@ function mostrarCRM(){
   // Mostrar tab Gestión solo para Director
   const navGestion=document.getElementById('nav-gestion');
   if(navGestion) navGestion.style.display=D.user.rol==='director'?'':'none';
+  // Mostrar barra progreso solo para representantes
+  const pb=document.getElementById('rep-progress-bar');
+  if(pb) pb.style.display=D.user.rol!=='director'?'block':'none';
   document.getElementById('mv-f').value=new Date().toISOString().split('T')[0];
   document.getElementById('mp-f').value=new Date().toISOString().split('T')[0];
   cargarDatos();
@@ -583,6 +651,63 @@ function rDash(){
   document.getElementById('dash-alertas').innerHTML=D.cuentas.filter(c=>c.estado==='Alerta').slice(0,4).map(c=>'<div class="abox '+(c.obs&&c.obs.includes('CRIT')?'red':'')+'" style="margin-bottom:5px"><strong>'+c.nombre+'</strong>'+(esD()?' / '+c.territorio:'')+'<br><span style="font-size:10px">'+(c.obs||'').substring(0,90)+'</span></div>').join('')||'<div class="empty">Sin alertas</div>';
   document.getElementById('dash-medicos').innerHTML=D.medicos.filter(m=>m.categoria==='A').slice(0,4).map(m=>'<div style="display:flex;align-items:center;gap:7px;padding:5px 0;border-bottom:1px solid #f0f0f0"><div class="avatar" style="background:'+avBg(m.nombre)+';width:26px;height:26px;font-size:10px">'+ini(m.nombre)+'</div><div><div style="font-size:11px;font-weight:700">'+m.nombre+'</div><div style="font-size:10px;color:#aaa">'+(m.institucion||'')+'</div></div></div>').join('')||'<div class="empty">Sin medicos cat A</div>';
   document.getElementById('dash-visitas').innerHTML=[...D.visitas].slice(0,4).map(v=>'<div style="padding:4px 0;border-bottom:1px solid #f0f0f0;font-size:11px"><strong>'+v.cliente+'</strong> / <span style="color:#aaa">'+v.fecha+'</span><br><span style="color:#888">'+v.tipo+' - <span style="color:'+(v.resultado==='Positivo'?'var(--green)':v.resultado==='Negativo'?'var(--red)':'var(--amber)')+'">'+v.resultado+'</span></span></div>').join('')||'<div class="empty">Sin visitas</div>';
+
+  // BARRA PROGRESO VISITAS (solo representantes)
+  if(!esD()){
+    const ahora=new Date();
+    const mesActual=ahora.getMonth();
+    const anio=ahora.getFullYear();
+    const diasMes=new Date(anio,mesActual+1,0).getDate();
+    const diaHoy=ahora.getDate();
+    const pctMes=Math.round(diaHoy/diasMes*100);
+    
+    const visitasMes=D.visitas.filter(v=>{
+      if(!v.fecha)return false;
+      const d=new Date(v.fecha);
+      return d.getMonth()===mesActual&&d.getFullYear()===anio;
+    });
+    const nVisitas=visitasMes.length;
+    const meta=20;
+    const pct=Math.min(100,Math.round(nVisitas/meta*100));
+    const colores={ok:'var(--green)',warn:'var(--amber)',red:'var(--red)'};
+    const col=pct>=80?colores.ok:pct>=50?colores.warn:colores.red;
+    const restantes=Math.max(0,meta-nVisitas);
+    const meses=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+    
+    const fillEl=document.getElementById('rep-progress-fill');
+    const valEl=document.getElementById('rep-progress-val');
+    const subEl=document.getElementById('rep-progress-sub');
+    const pctEl=document.getElementById('rep-progress-pct');
+    const restEl=document.getElementById('rep-progress-rest');
+    const miniEl=document.getElementById('rep-mini-kpis');
+    
+    if(fillEl){fillEl.style.width=pct+'%';fillEl.style.background=col;}
+    if(valEl){valEl.textContent=nVisitas;valEl.style.color=col;}
+    if(subEl){subEl.textContent=meses[mesActual]+' '+anio+' · Día '+diaHoy+' de '+diasMes+' ('+pctMes+'% del mes transcurrido)';}
+    if(pctEl){pctEl.textContent=pct+'% de la meta cumplido';}
+    if(restEl){restEl.textContent=restantes>0?restantes+' visitas para llegar a 20':'¡Meta mensual alcanzada! ✓';}
+    
+    // Mini KPIs adicionales
+    const prospActivos=D.prospectos.length;
+    const medCat=D.medicos.filter(m=>m.categoria==='A').length;
+    const alertasAct=(D.alertas||[]).filter(a=>a.estado==='Activa').length;
+    const visitasA=visitasMes.filter(v=>v.tipo&&v.tipo.includes('cat')).length;
+    
+    if(miniEl) miniEl.innerHTML=[
+      {l:'Prospectos activos',v:prospActivos,m:15,u:'meta 15'},
+      {l:'Médicos cat. A',v:medCat,m:10,u:'seguimiento'},
+      {l:'Visitas cat. A mes',v:visitasA,m:10,u:'de este mes'},
+      {l:'Alertas abiertas',v:alertasAct,m:0,u:'pendientes'},
+    ].map(k=>{
+      const ok=k.m===0||k.v>=k.m;
+      return '<div style="text-align:center;padding:6px;background:'+(ok?'var(--teal-l)':'var(--amber-l)')+';border-radius:7px">'
+        +'<div style="font-size:9px;color:#666;text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px">'+k.l+'</div>'
+        +'<div style="font-size:18px;font-weight:800;color:'+(ok?'var(--green)':'var(--amber)')+'">'+k.v+'</div>'
+        +'<div style="font-size:9px;color:#aaa">'+k.u+'</div>'
+        +'</div>';
+    }).join('');
+  }
+
   const en={C:'C',D:'D',N:'N',K:'K',A:'A'};
   document.getElementById('dash-funnel').innerHTML='<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:5px">'+['C','D','N','K','A'].map(e=>{const n=D.prospectos.filter(p=>p.etapa===e).length;const pot=D.prospectos.filter(p=>p.etapa===e).reduce((s,p)=>s+(+p.pot||0),0);return'<div style="text-align:center;padding:8px;background:#F8F9FF;border-radius:7px"><div style="font-size:9px;font-weight:700;color:#aaa">'+e+'</div><div style="font-size:20px;font-weight:800;color:var(--navy)">'+n+'</div>'+(pot>0?'<div style="font-size:9px;color:var(--teal)">$'+pot+'M</div>':'')+'</div>';}).join('')+'</div>';
 }
@@ -703,15 +828,14 @@ function abrirModalContacto(cId,cNom){
   document.getElementById('mct').querySelectorAll('select').forEach(e=>e.selectedIndex=0);
   const instEl=document.getElementById('ct-inst');
   if(cNom){
-    instEl.value=cNom;instEl.setAttribute('readonly','');
-    instEl.style.background='#F8F9FF';instEl.style.color='#888';
     document.getElementById('mct-t').textContent='Nuevo Contacto - '+cNom;
     document.getElementById('mct-lbl').textContent='Contacto para: '+cNom;
   }else{
-    instEl.removeAttribute('readonly');instEl.style.background='';instEl.style.color='';
     document.getElementById('mct-t').textContent='Nuevo Contacto';
     document.getElementById('mct-lbl').textContent='';
   }
+  // Poblar select de cuentas después de abrir
+  setTimeout(()=>poblarCuentasSelect(cId), 10);
   abrirModal('mct');
 }
 
@@ -722,8 +846,8 @@ function editarContacto(id){
   document.getElementById('mct-lbl').textContent=ct.cuenta_nombre?'Contacto de: '+ct.cuenta_nombre:'';
   const mapa={n:'nombre',rol:'rol',imp:'importancia',inst:'institucion',area:'area',cel:'cel',wa:'wa',mail:'mail',bday:'bday',hora:'hora',canal:'canal',desc:'descripcion',notas:'notas',extra:'extra'};
   Object.entries(mapa).forEach(([k,v])=>{const el=document.getElementById('ct-'+k);if(el)el.value=ct[v]||'';});
-  const instEl=document.getElementById('ct-inst');
-  instEl.setAttribute('readonly','');instEl.style.background='#F8F9FF';instEl.style.color='#888';
+  // Poblar select de cuentas
+  setTimeout(()=>poblarCuentasSelect(ct.cuenta_id||null), 10);
   abrirModal('mct');
 }
 
@@ -731,7 +855,8 @@ async function guardarContacto(){
   ss('saving','Guardando...');
   const g=id=>document.getElementById('ct-'+id)&&document.getElementById('ct-'+id).value||'';
   const zona=D.user.zona==='todas'?'Cali':D.user.zona;
-  const o={nombre:g('n').trim(),rol:g('rol'),importancia:g('imp'),institucion:D.ctxNom||g('inst'),cuenta_id:D.ctxId||null,cuenta_nombre:D.ctxNom||g('inst')||null,territorio:zona,area:g('area'),cel:g('cel'),wa:g('wa'),mail:g('mail'),bday:g('bday'),hora:g('hora'),canal:g('canal'),descripcion:g('desc'),notas:g('notas'),extra:g('extra'),updated_at:new Date().toISOString()};
+  const instNom=document.getElementById('ct-inst')&&document.getElementById('ct-inst').value||D.ctxNom||'';
+  const o={nombre:g('n').trim(),rol:g('rol'),importancia:g('imp'),institucion:instNom,cuenta_id:D.ctxId||null,cuenta_nombre:instNom||null,territorio:zona,area:g('area'),cel:g('cel'),wa:g('wa'),mail:g('mail'),bday:g('bday'),hora:g('hora'),canal:g('canal'),descripcion:g('desc'),notas:g('notas'),extra:g('extra'),updated_at:new Date().toISOString()};
   if(!o.nombre)return;
   try{if(D.editId)await sbU('contactos',D.editId,o);else await sbI('contactos',{...o,id:crypto.randomUUID()});await cargarDatos();ss('ok','Guardado');cerrarModal('mct');}
   catch(e){ss('err','Error');alert('Error: '+e.message);}
@@ -822,6 +947,57 @@ async function guardarVisita(){
 function renderAlertas(){renderAlertasPage();}
 
 
+
+// ═══ CONTACTO: SELECT DE CUENTAS ═══
+function poblarCuentasSelect(cuentaIdPredeterminado){
+  const sel = document.getElementById('ct-inst-sel');
+  if(!sel) return;
+  const instEl = document.getElementById('ct-inst');
+  
+  // Filtrar cuentas por zona del representante
+  const cuentasZona = D.user.zona==='todas' 
+    ? D.cuentas 
+    : D.cuentas.filter(c=>c.territorio===D.user.zona);
+  
+  sel.innerHTML = '<option value="">Seleccionar cuenta...</option>'
+    + cuentasZona.sort((a,b)=>a.nombre.localeCompare(b.nombre))
+                 .map(c=>'<option value="'+c.id+'" data-nombre="'+c.nombre.replace(/"/g,"&quot;")+'">'+c.nombre+'</option>')
+                 .join('');
+  
+  // Si hay cuenta predeterminada, seleccionarla
+  if(cuentaIdPredeterminado){
+    sel.value = cuentaIdPredeterminado;
+    const opt = sel.querySelector('option[value="'+cuentaIdPredeterminado+'"]');
+    if(opt){
+      instEl.value = opt.getAttribute('data-nombre')||'';
+    }
+  }
+  
+  // Hacer el select read-only si viene de una cuenta específica
+  sel.disabled = !!D.ctxId;
+  if(D.ctxId){
+    sel.style.background='#F8F9FF';sel.style.color='#888';
+  } else {
+    sel.style.background='';sel.style.color='';
+  }
+}
+
+function seleccionarCuentaContacto(){
+  const sel = document.getElementById('ct-inst-sel');
+  const instEl = document.getElementById('ct-inst');
+  if(!sel||!instEl) return;
+  const opt = sel.options[sel.selectedIndex];
+  instEl.value = opt ? (opt.getAttribute('data-nombre')||'') : '';
+  // Actualizar ctxId y ctxNom para guardar la relación
+  if(sel.value){
+    D.ctxId = sel.value;
+    D.ctxNom = opt.getAttribute('data-nombre')||'';
+  } else {
+    D.ctxId = null;
+    D.ctxNom = null;
+  }
+}
+
 // ═══ ALERTAS COMERCIALES ═══
 async function guardarAlerta(){
   ss('saving','Guardando...');
@@ -885,7 +1061,7 @@ function renderAlertasPage(){
         +(al.descripcion?'<div style="font-size:11px;color:#666;margin-top:4px;line-height:1.5">'+al.descripcion+'</div>':'')
         +'</div>'
         +'<div style="display:flex;gap:4px;flex-shrink:0">'
-        +'<button class="btn bg bsm" onclick="resolverAlerta(''+al.id+'')">&#10003; Resolver</button>'
+        +'<button class="btn bt bsm" onclick="abrirDetalleAlerta(''+al.id+'')">&#128196; Gestionar</button>'
         +'<button class="btn bo bsm" onclick="editarAlerta(''+al.id+'')">✏️</button>'
         +'<button class="btn bd bsm" onclick="eliminarAlerta(''+al.id+'')">🗑</button>'
         +'</div></div></div>').join('')
@@ -907,6 +1083,134 @@ function renderAlertasPage(){
   const prox=D.prospectos.filter(p=>p.fecha).sort((a,b)=>a.fecha.localeCompare(b.fecha)).slice(0,6);
   const fEl=document.getElementById('alertas-funnel');
   if(fEl) fEl.innerHTML=prox.map(p=>'<div class="card" style="margin-bottom:6px"><div style="padding:8px 14px;display:flex;align-items:center;gap:9px;flex-wrap:wrap">'+bdg('b'+(p.etapa||'C'),p.etapa||'C')+'<div style="flex:1"><div style="font-size:12px;font-weight:700">'+p.nombre+'</div><div style="font-size:10px;color:#888">'+(p.proxima||'')+'</div></div><span style="font-size:10px;color:#aaa">'+p.fecha+'</span>'+(esD()?tbdg(p.territorio||''):'')+'</div></div>').join('')||'<div class="empty">Sin acciones pendientes en funnel</div>';
+}
+
+
+// ═══ GESTIÓN DETALLE DE ALERTA ═══
+let alertaActivaId = null;
+
+function abrirDetalleAlerta(id){
+  const al = D.alertas&&D.alertas.find(x=>x.id===id);
+  if(!al) return;
+  alertaActivaId = id;
+  
+  const tipoIcon={Alerta:'⚠️',Urgente:'🔴',Info:'ℹ️',Oportunidad:'⭐'};
+  const tipoClass={Alerta:'var(--amber)',Urgente:'var(--red)',Info:'var(--blue)',Oportunidad:'var(--green)'};
+  
+  document.getElementById('mald-titulo').textContent = (tipoIcon[al.tipo]||'⚠️')+' '+al.titulo;
+  document.getElementById('mald-meta').textContent = 'Creada por '+al.creado_por+(al.fecha_limite?' · Vence: '+al.fecha_limite:'')+(al.cuenta_nombre?' · '+al.cuenta_nombre:'');
+  
+  // Detalle
+  const detEl = document.getElementById('mald-detalle-body');
+  if(detEl) detEl.innerHTML = '<div style="display:flex;gap:10px;align-items:flex-start">'
+    +'<span style="font-size:22px">'+(tipoIcon[al.tipo]||'⚠️')+'</span>'
+    +'<div><div style="font-size:13px;font-weight:700;color:var(--navy);margin-bottom:4px">'+al.titulo+'</div>'
+    +(al.descripcion?'<div style="font-size:12px;color:#666;line-height:1.5">'+al.descripcion+'</div>':'')
+    +'<div style="margin-top:6px"><span class="badge '+(al.estado==='Resuelta'?'bok':'bwarn')+'">'+al.estado+'</span>'
+    +(al.territorio?(' '+bdg(al.territorio==='Cali'?'bc':'bb',al.territorio)):'')+'</div>'
+    +'</div></div>';
+  
+  // Historial de acciones
+  renderAccionesAlerta(al);
+  
+  // Botón resolver
+  const btnR = document.getElementById('btn-resolver-detalle');
+  if(btnR){
+    btnR.style.display = al.estado==='Resuelta'?'none':'';
+  }
+  
+  // Limpiar campo
+  document.getElementById('mald-nueva-accion').value='';
+  
+  abrirModal('mal-detalle');
+}
+
+function renderAccionesAlerta(al){
+  const listEl = document.getElementById('mald-acciones-list');
+  if(!listEl) return;
+  
+  let acciones = [];
+  try{ acciones = al.acciones ? JSON.parse(al.acciones) : []; }catch(e){ acciones = []; }
+  
+  if(!acciones.length){
+    listEl.innerHTML = '<div style="text-align:center;padding:16px;color:#ccc;font-size:11px">Sin acciones registradas aún.<br>Registra la primera acción abajo.</div>';
+    return;
+  }
+  
+  listEl.innerHTML = [...acciones].reverse().map(a=>'<div style="padding:8px 10px;background:#fff;border-radius:7px;margin-bottom:6px;border:1px solid var(--border)">'
+    +'<div style="display:flex;gap:8px;align-items:flex-start">'
+    +'<span style="font-size:14px;flex-shrink:0">📝</span>'
+    +'<div style="flex:1">'
+    +'<div style="font-size:11px;color:#666;line-height:1.5">'+a.texto+'</div>'
+    +'<div style="font-size:10px;color:#aaa;margin-top:4px">'+a.autor+' &middot; '+a.fecha+'</div>'
+    +'</div></div></div>').join('');
+}
+
+async function guardarAccionAlerta(){
+  const texto = document.getElementById('mald-nueva-accion').value.trim();
+  if(!texto){alert('Escribe la acción que se realizó.');return;}
+  if(!alertaActivaId)return;
+  
+  const al = D.alertas&&D.alertas.find(x=>x.id===alertaActivaId);
+  if(!al)return;
+  
+  ss('saving','Guardando...');
+  
+  let acciones = [];
+  try{ acciones = al.acciones ? JSON.parse(al.acciones) : []; }catch(e){ acciones = []; }
+  
+  acciones.push({
+    texto: texto,
+    autor: D.user.nombre,
+    fecha: new Date().toLocaleDateString('es-CO',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}),
+    ts: new Date().toISOString()
+  });
+  
+  try{
+    await sbU('alertas_comerciales', alertaActivaId, {
+      acciones: JSON.stringify(acciones),
+      updated_at: new Date().toISOString()
+    });
+    await cargarDatos();
+    ss('ok','Acción guardada');
+    document.getElementById('mald-nueva-accion').value='';
+    // Actualizar el modal con los datos frescos
+    const alActualizada = D.alertas&&D.alertas.find(x=>x.id===alertaActivaId);
+    if(alActualizada) renderAccionesAlerta(alActualizada);
+  }catch(e){ss('err','Error');alert('Error: '+e.message);}
+}
+
+async function resolverDesdeDetalle(){
+  if(!alertaActivaId)return;
+  if(!confirm('¿Marcar esta alerta como resuelta?'))return;
+  
+  // Guardar acción de cierre primero
+  const textoFinal = document.getElementById('mald-nueva-accion').value.trim();
+  const al = D.alertas&&D.alertas.find(x=>x.id===alertaActivaId);
+  if(!al)return;
+  
+  let acciones = [];
+  try{ acciones = al.acciones ? JSON.parse(al.acciones) : []; }catch(e){ acciones = []; }
+  
+  if(textoFinal){
+    acciones.push({
+      texto: textoFinal+' [ALERTA RESUELTA]',
+      autor: D.user.nombre,
+      fecha: new Date().toLocaleDateString('es-CO',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}),
+      ts: new Date().toISOString()
+    });
+  }
+  
+  try{
+    await sbU('alertas_comerciales', alertaActivaId, {
+      estado: 'Resuelta',
+      acciones: JSON.stringify(acciones),
+      updated_at: new Date().toISOString()
+    });
+    await cargarDatos();
+    ss('ok','Alerta resuelta');
+    cerrarModal('mal-detalle');
+  }catch(e){ss('err','Error');alert('Error: '+e.message);}
 }
 
 // ═══ DASHBOARD GESTIÓN (Director) ═══
