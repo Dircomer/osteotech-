@@ -501,25 +501,40 @@ td.r{text-align:right}th.r{text-align:right}
   </div>
 </div>
 
-<!-- MODAL GESTIONAR ALERTA (historial acciones) -->
+<!-- MODAL GESTIONAR ALERTA - con estado, historial e impresion -->
 <div class="ov" id="m-gest-al">
-  <div class="modal" style="max-width:600px">
+  <div class="modal" style="max-width:640px">
     <div class="mh">
       <div><div class="mt" id="mga-titulo">Gestionar Alerta</div><div style="font-size:10px;color:#aaa;margin-top:1px" id="mga-meta"></div></div>
-      <button class="mx" onclick="cerrar('m-gest-al')">&#10005;</button>
+      <div style="display:flex;gap:6px;align-items:center">
+        <button class="btn bo bsm" onclick="imprimirAlerta()" style="font-size:10px">Imprimir</button>
+        <button class="mx" onclick="cerrar('m-gest-al')">&#10005;</button>
+      </div>
     </div>
+    <!-- Detalle de la alerta -->
     <div id="mga-detalle" style="padding:14px 16px;border-bottom:1px solid var(--bdr);background:#F8F9FF"></div>
-    <div style="padding:14px 16px;border-bottom:1px solid var(--bdr)">
-      <div style="font-size:11px;font-weight:700;color:var(--navy);margin-bottom:8px">Historial de Acciones</div>
-      <div id="mga-hist" style="max-height:200px;overflow-y:auto"></div>
+    <!-- Cambiar estado -->
+    <div style="padding:10px 16px;border-bottom:1px solid var(--bdr);display:flex;align-items:center;gap:12px;background:#fff">
+      <span style="font-size:11px;font-weight:700;color:var(--navy)">Estado:</span>
+      <select id="mga-estado" style="padding:5px 9px;border:1.5px solid var(--bdr);border-radius:6px;font-size:12px;flex:1" onchange="cambiarEstadoAlerta()">
+        <option value="Activa">Activa</option>
+        <option value="En proceso">En proceso</option>
+        <option value="Resuelta">Resuelta</option>
+      </select>
+      <span style="font-size:10px;color:#aaa" id="mga-estado-info">Cambia el estado de la alerta</span>
     </div>
+    <!-- Historial timeline -->
+    <div style="padding:14px 16px;border-bottom:1px solid var(--bdr);max-height:240px;overflow-y:auto">
+      <div style="font-size:11px;font-weight:700;color:var(--navy);margin-bottom:10px">Historial de acciones</div>
+      <div id="mga-hist"></div>
+    </div>
+    <!-- Nueva accion -->
     <div style="padding:14px 16px">
-      <div style="font-size:11px;font-weight:700;color:var(--navy);margin-bottom:8px">Registrar nueva accion</div>
-      <div class="fg"><textarea id="mga-nueva" placeholder="Describe la accion tomada, el avance, el compromiso adquirido..." style="min-height:80px"></textarea></div>
+      <div style="font-size:11px;font-weight:700;color:var(--navy);margin-bottom:6px">Registrar accion</div>
+      <textarea id="mga-nueva" placeholder="Describe la accion tomada, el avance logrado, el compromiso adquirido..." style="width:100%;padding:9px;border:1.5px solid var(--bdr);border-radius:6px;font-size:12px;min-height:80px;resize:vertical;font-family:inherit"></textarea>
     </div>
     <div class="mf">
       <button class="btn bo" onclick="cerrar('m-gest-al')">Cerrar</button>
-      <button class="btn bg" id="mga-btn-res" onclick="resolverAlerta()">Marcar resuelta</button>
       <button class="btn bp" onclick="guardarAccion()">Guardar accion</button>
     </div>
   </div>
@@ -537,16 +552,16 @@ td.r{text-align:right}th.r{text-align:right}
     <div style="padding:14px 16px">
       <div class="fgrid g2" style="padding:0">
         <div class="fg" style="grid-column:1/3">
-          <label>Estado de la cuenta</label>
-          <select id="mgc-estado">
+          <label style="font-size:9px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.05em">Estado de la cuenta</label>
+          <select id="mgc-estado" style="padding:7px 9px;border:1.5px solid var(--bdr);border-radius:6px;font-size:12px;color:var(--grey);width:100%">
             <option value="Activa">Activa - Sin problemas</option>
             <option value="Alerta">Alerta - Requiere atencion</option>
             <option value="Inactiva">Inactiva</option>
           </select>
         </div>
         <div class="fg" style="grid-column:1/3">
-          <label>Observacion / Novedad</label>
-          <textarea id="mgc-obs" placeholder="Describe la situacion actual, acciones tomadas, compromisos adquiridos..." style="min-height:90px"></textarea>
+          <label style="font-size:9px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.05em">Observacion / Novedad</label>
+          <textarea id="mgc-obs" placeholder="Describe la situacion actual, acciones tomadas, compromisos..." style="padding:7px 9px;border:1.5px solid var(--bdr);border-radius:6px;font-size:12px;color:var(--grey);width:100%;min-height:90px;resize:vertical;font-family:inherit"></textarea>
         </div>
       </div>
     </div>
@@ -578,7 +593,11 @@ const ss=(s,m)=>{const el=document.getElementById('sdot');if(el)el.className='sd
 const uid=()=>crypto.randomUUID();
 const now=()=>new Date().toISOString();
 const esDir=()=>D.user&&D.user.rol==='director';
-const gZona=()=>D.user?(D.user.zona==='todas'?'Cali':D.user.zona):'Cali';
+const gZona=()=>{
+  if(!D.user)return 'Cali';
+  if(D.user.zona==='todas')return 'Cali';
+  return D.user.zona; // 'Cali' or 'Bogota' - normalized without accents
+};
 
 // ========================================
 // HELPERS VISUALES
@@ -652,7 +671,9 @@ function salir(){
 async function cargarTodo(){
   ss('saving','Conectando...');
   try{
-    const zf=D.user.zona==='todas'?'':('territorio=eq.'+encodeURIComponent(D.user.zona)+'&');
+    // Filter zone - ilike handles Bogota/Bogoto variants
+    const zNom=D.user.zona==='Bogota'?'Bogot':D.user.zona==='Cali'?'Cali':'';
+    const zf=D.user.zona==='todas'?'':('territorio=ilike.'+zNom+'*&');
     const [c,m,ct,p,v,al]=await Promise.all([
       sbG('cuentas',zf+'select=*'),
       sbG('medicos',zf+'select=*'),
@@ -803,7 +824,7 @@ function rCuentas(){
       +'<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">'
       +'<strong style="font-size:13px">'+c.nombre+'</strong>'+(c.representante?'<span style="font-size:9px;background:var(--nl);color:var(--navy);padding:2px 6px;border-radius:10px;font-weight:700">'+c.representante+'</span>':'')
       +tbdg(c.territorio)+ebdg(c.estado)
-      +'<span style="font-size:10px;color:#888">'+(c.tipo||'')+'</span>'+(c.representante&&esDir()?'<span style="font-size:10px;background:var(--bl);color:var(--blue);padding:1px 7px;border-radius:10px;font-weight:700">'+c.representante+'</span>':'')
+      +'<span style="font-size:10px;color:#888">'+(c.tipo||'')+'</span>'
       +(cts.length?'<span class="bdg bgr">'+cts.length+' contacto'+(cts.length>1?'s':'')+'</span>':'')
       +'</div>'
       +'<div style="display:flex;gap:14px;margin-top:4px;flex-wrap:wrap">'
@@ -1053,15 +1074,27 @@ async function guardarAlerta(){
   try{D.editId?await sbU('alertas_comerciales',D.editId,o):await sbI('alertas_comerciales',{...o,id:uid()});await cargarTodo();ss('ok','Guardado');cerrar('m-alerta');}
   catch(e){ss('err','Error');alert('Error: '+e.message);}
 }
-
 function gestionar(id){
-  const al=D.alertas.find(x=>x.id===id);if(!al)return;
+  const al=D.alertas.find(function(x){return x.id===id;});
+  if(!al)return;
   D.alertaActiva=id;
-  const tipoIcon={Alerta:'[!]',Urgente:'[!!]',Info:'[i]',Oportunidad:'[*]'};
-  document.getElementById('mga-titulo').textContent=(tipoIcon[al.tipo]||'[!]')+' '+al.titulo;
-  document.getElementById('mga-meta').textContent='Creada por '+al.creado_por+(al.fecha_limite?' - Vence: '+al.fecha_limite:'')+(al.cuenta_nombre?' - '+al.cuenta_nombre:'');
-  document.getElementById('mga-detalle').innerHTML='<div style="font-size:13px;font-weight:700;color:var(--navy);margin-bottom:4px">'+al.titulo+'</div>'+(al.descripcion?'<div style="font-size:12px;color:#666;line-height:1.5">'+al.descripcion+'</div>':'')+'<div style="margin-top:6px">'+bdg(al.estado==='Resuelta'?'bok':'bwrn',al.estado)+(al.territorio?' '+tbdg(al.territorio):'')+'</div>';
-  document.getElementById('mga-btn-res').style.display=al.estado==='Resuelta'?'none':'';
+  const tIcon={Alerta:'[!]',Urgente:'[!!]',Info:'[i]',Oportunidad:'[*]'};
+  document.getElementById('mga-titulo').textContent=(tIcon[al.tipo]||'[!]')+' '+al.titulo;
+  document.getElementById('mga-meta').textContent=
+    'Creada por '+al.creado_por
+    +(al.fecha_limite?' | Vence: '+al.fecha_limite:'')
+    +(al.cuenta_nombre?' | '+al.cuenta_nombre:'')
+    +(al.territorio?' | '+al.territorio:'');
+  document.getElementById('mga-detalle').innerHTML=
+    '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:6px">'
+    +bdg(al.estado==='Resuelta'?'bok':al.estado==='En proceso'?'bwrn':'bred',al.estado||'Activa')
+    +bdg('bgr',al.tipo||'Alerta')
+    +'</div>'
+    +(al.descripcion?'<div style="font-size:12px;color:#444;line-height:1.6;margin-top:4px">'+al.descripcion+'</div>':'<div style="font-size:11px;color:#aaa">Sin descripcion registrada.</div>');
+  const estadoSel=document.getElementById('mga-estado');
+  if(estadoSel){estadoSel.value=al.estado||'Activa';}
+  const infoEl=document.getElementById('mga-estado-info');
+  if(infoEl) infoEl.textContent='';
   document.getElementById('mga-nueva').value='';
   renderHistorial(al);
   abrir('m-gest-al');
@@ -1071,60 +1104,184 @@ function renderHistorial(al){
   let accs=[];
   try{accs=al.acciones?JSON.parse(al.acciones):[];}catch(e){accs=[];}
   const el=document.getElementById('mga-hist');
-  if(!accs.length){el.innerHTML='<div style="text-align:center;padding:14px;color:#ccc;font-size:11px">Sin acciones registradas aun. Registra la primera accion abajo.</div>';return;}
-  el.innerHTML=[...accs].reverse().map(a=>'<div class="acc-item"><div class="acc-txt">'+a.texto+'</div><div class="acc-meta">'+a.autor+' - '+a.fecha+'</div></div>').join('');
+  if(!el)return;
+  if(!accs.length){
+    el.innerHTML='<div style="text-align:center;padding:16px;color:#ccc;font-size:11px;background:#F8F9FF;border-radius:8px">Sin acciones registradas. Agrega la primera accion abajo.</div>';
+    return;
+  }
+  el.innerHTML=[...accs].reverse().map(function(a){
+    const colEst=a.estado==='Resuelta'?'var(--green)':a.estado==='En proceso'?'var(--amber)':'var(--navy)';
+    return '<div class="acc-item">'
+      +'<div style="display:flex;align-items:flex-start;gap:8px">'
+      +'<div style="width:8px;height:8px;border-radius:50%;background:'+colEst+';margin-top:4px;flex-shrink:0"></div>'
+      +'<div style="flex:1">'
+      +'<div class="acc-txt">'+a.texto+'</div>'
+      +'<div class="acc-meta" style="display:flex;gap:10px;margin-top:3px">'
+      +'<span>'+a.autor+'</span>'
+      +'<span>'+a.fecha+'</span>'
+      +(a.estado?'<span style="font-weight:700;color:'+colEst+'">Estado: '+a.estado+'</span>':'')
+      +'</div>'
+      +'</div></div></div>';
+  }).join('');
+}
+
+async function cambiarEstadoAlerta(){
+  if(!D.alertaActiva)return;
+  const nuevoEstado=document.getElementById('mga-estado').value;
+  const infoEl=document.getElementById('mga-estado-info');
+  ss('saving','Guardando...');
+  try{
+    await sbU('alertas_comerciales',D.alertaActiva,{estado:nuevoEstado,updated_at:now()});
+    await cargarTodo();
+    ss('ok','Estado actualizado');
+    if(infoEl) infoEl.textContent='Guardado: '+nuevoEstado;
+    // Refresh historial con datos frescos
+    const alAct=D.alertas.find(function(x){return x.id===D.alertaActiva;});
+    if(alAct) renderHistorial(alAct);
+  }catch(e){ss('err','Error');alert('Error: '+e.message);}
 }
 
 async function guardarAccion(){
   const texto=(document.getElementById('mga-nueva').value||'').trim();
-  if(!texto){alert('Escribe la accion que se realizo.');return;}
+  if(!texto){alert('Escribe la accion realizada.');return;}
   if(!D.alertaActiva)return;
-  const al=D.alertas.find(x=>x.id===D.alertaActiva);if(!al)return;
+  const al=D.alertas.find(function(x){return x.id===D.alertaActiva;});
+  if(!al)return;
   ss('saving','Guardando...');
-  let accs=[];try{accs=al.acciones?JSON.parse(al.acciones):[];}catch(e){accs=[];}
-  accs.push({texto:texto,autor:D.user.nombre,fecha:new Date().toLocaleDateString('es-CO',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}),ts:now()});
+  let accs=[];
+  try{accs=al.acciones?JSON.parse(al.acciones):[];}catch(e){accs=[];}
+  const estadoActual=(document.getElementById('mga-estado')&&document.getElementById('mga-estado').value)||al.estado||'Activa';
+  accs.push({
+    texto:texto,
+    autor:D.user.nombre,
+    fecha:new Date().toLocaleDateString('es-CO',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}),
+    estado:estadoActual,
+    ts:now()
+  });
   try{
-    await sbU('alertas_comerciales',D.alertaActiva,{acciones:JSON.stringify(accs),updated_at:now()});
-    await cargarTodo();ss('ok','Accion guardada');
+    await sbU('alertas_comerciales',D.alertaActiva,{
+      acciones:JSON.stringify(accs),
+      estado:estadoActual,
+      updated_at:now()
+    });
+    await cargarTodo();
+    ss('ok','Accion guardada');
     document.getElementById('mga-nueva').value='';
-    const alAct=D.alertas.find(x=>x.id===D.alertaActiva);
-    if(alAct)renderHistorial(alAct);
+    const alAct=D.alertas.find(function(x){return x.id===D.alertaActiva;});
+    if(alAct) renderHistorial(alAct);
   }catch(e){ss('err','Error');alert('Error: '+e.message);}
 }
 
 async function resolverAlerta(){
   if(!D.alertaActiva)return;
   if(!confirm('Marcar esta alerta como resuelta?'))return;
-  const al=D.alertas.find(x=>x.id===D.alertaActiva);if(!al)return;
+  const al=D.alertas.find(function(x){return x.id===D.alertaActiva;});
+  if(!al)return;
   const txt=(document.getElementById('mga-nueva').value||'').trim();
-  let accs=[];try{accs=al.acciones?JSON.parse(al.acciones):[];}catch(e){accs=[];}
-  if(txt)accs.push({texto:txt+' [RESUELTA]',autor:D.user.nombre,fecha:new Date().toLocaleDateString('es-CO',{day:'2-digit',month:'short',year:'numeric'}),ts:now()});
+  let accs=[];
+  try{accs=al.acciones?JSON.parse(al.acciones):[];}catch(e){accs=[];}
+  if(txt){
+    accs.push({
+      texto:txt+' [ALERTA RESUELTA]',
+      autor:D.user.nombre,
+      fecha:new Date().toLocaleDateString('es-CO',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}),
+      estado:'Resuelta',
+      ts:now()
+    });
+  }
   try{
-    await sbU('alertas_comerciales',D.alertaActiva,{estado:'Resuelta',acciones:JSON.stringify(accs),updated_at:now()});
-    await cargarTodo();ss('ok','Alerta resuelta');cerrar('m-gest-al');
+    await sbU('alertas_comerciales',D.alertaActiva,{
+      estado:'Resuelta',
+      acciones:JSON.stringify(accs),
+      updated_at:now()
+    });
+    await cargarTodo();
+    ss('ok','Alerta resuelta');
+    cerrar('m-gest-al');
   }catch(e){ss('err','Error');alert('Error: '+e.message);}
 }
 
 async function eliminarAlerta(id){
-  if(!confirm('Eliminar esta alerta?'))return;
-  try{await sbD('alertas_comerciales',id);await cargarTodo();ss('ok','Eliminada');}catch(e){alert('Error: '+e.message);}
+  if(!confirm('Eliminar esta alerta permanentemente?'))return;
+  try{
+    await sbD('alertas_comerciales',id);
+    await cargarTodo();
+    ss('ok','Alerta eliminada');
+  }catch(e){alert('Error: '+e.message);}
 }
 
-function rAlertas(){
-  const activas=D.alertas.filter(a=>a.estado!='Resuelta');
-  const resueltas=D.alertas.filter(a=>a.estado==='Resuelta').slice(0,3);
-  const tCls={Alerta:'',Urgente:'urg',Info:'inf',Oportunidad:'op'};
-  const tIcon={Alerta:'[!]',Urgente:'[!!]',Info:'[i]',Oportunidad:'[*]'};
+function imprimirAlerta(){
+  if(!D.alertaActiva)return;
+  const al=D.alertas.find(function(x){return x.id===D.alertaActiva;});
+  if(!al)return;
+  let accs=[];
+  try{accs=al.acciones?JSON.parse(al.acciones):[];}catch(e){accs=[];}
+  const fecha=new Date().toLocaleDateString('es-CO',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  const tIcon={Alerta:'[ALERTA]',Urgente:'[URGENTE]',Info:'[INFO]',Oportunidad:'[OPORTUNIDAD]'};
+  const colEst={Activa:'#991B1B','En proceso':'#B45309',Resuelta:'#065F46'};
+  const htmlPrint='<!DOCTYPE html><html><head><meta charset="UTF-8">'
+    +'<title>Alerta - '+al.titulo+'</title>'
+    +'<style>'
+    +'body{font-family:Arial,sans-serif;margin:32px;color:#333;max-width:720px}'
+    +'h1{font-size:20px;color:#2D3A8C;border-bottom:2px solid #2D3A8C;padding-bottom:8px;margin-bottom:16px}'
+    +'.meta{background:#F8F9FF;border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:12px}'
+    +'.meta-row{display:flex;gap:8px;margin-bottom:4px}'
+    +'.meta-label{font-weight:700;color:#666;min-width:110px}'
+    +'.meta-val{color:#333}'
+    +'.desc{background:#fff;border:1px solid #ddd;border-radius:6px;padding:12px 16px;margin-bottom:20px;font-size:13px;line-height:1.6}'
+    +'.hist-title{font-size:14px;font-weight:700;color:#2D3A8C;margin-bottom:12px;border-bottom:1px solid #ddd;padding-bottom:6px}'
+    +'.acc{border-left:3px solid #2D3A8C;margin-bottom:12px;padding:8px 12px;background:#F8F9FF;border-radius:0 6px 6px 0}'
+    +'.acc-txt{font-size:12px;color:#333;line-height:1.6;margin-bottom:4px}'
+    +'.acc-meta{font-size:10px;color:#888;display:flex;gap:12px}'
+    +'.estado-badge{display:inline-block;padding:2px 10px;border-radius:12px;font-size:11px;font-weight:700;color:#fff}'
+    +'.footer{margin-top:24px;padding-top:10px;border-top:1px solid #ddd;font-size:10px;color:#aaa;text-align:right}'
+    +'@media print{body{margin:16px}}'
+    +'</style></head><body>'
+    +'<h1>'+(tIcon[al.tipo]||'[ALERTA]')+' '+al.titulo+'</h1>'
+    +'<div class="meta">'
+    +'<div class="meta-row"><span class="meta-label">Estado actual:</span><span class="meta-val"><span class="estado-badge" style="background:'+(colEst[al.estado]||'#2D3A8C')+'">'+(al.estado||'Activa')+'</span></span></div>'
+    +'<div class="meta-row"><span class="meta-label">Tipo:</span><span class="meta-val">'+(al.tipo||'')+'</span></div>'
+    +(al.cuenta_nombre?'<div class="meta-row"><span class="meta-label">Cuenta:</span><span class="meta-val">'+al.cuenta_nombre+'</span></div>':'')
+    +(al.territorio?'<div class="meta-row"><span class="meta-label">Territorio:</span><span class="meta-val">'+al.territorio+'</span></div>':'')
+    +'<div class="meta-row"><span class="meta-label">Creada por:</span><span class="meta-val">'+al.creado_por+'</span></div>'
+    +(al.fecha_limite?'<div class="meta-row"><span class="meta-label">Fecha limite:</span><span class="meta-val">'+al.fecha_limite+'</span></div>':'')
+    +'</div>'
+    +(al.descripcion?'<div class="desc">'+al.descripcion+'</div>':'')
+    +'<div class="hist-title">Historial de Acciones ('+accs.length+')</div>'
+    +(accs.length
+      ?[...accs].reverse().map(function(a){
+        return '<div class="acc">'
+          +'<div class="acc-txt">'+a.texto+'</div>'
+          +'<div class="acc-meta"><span>'+a.autor+'</span><span>'+a.fecha+'</span>'
+          +(a.estado?'<span style="font-weight:700;color:'+(colEst[a.estado]||'#2D3A8C')+'">'+a.estado+'</span>':'')
+          +'</div></div>';
+      }).join('')
+      :'<div style="color:#aaa;font-size:12px;padding:10px">Sin acciones registradas.</div>'
+    )
+    +'<div class="footer">Documento generado el '+fecha+' | OSTEOTECH Implantes Quirurgicos | Confidencial</div>'
+    +'</body></html>';
+  const w=window.open('','_blank','width=800,height=700');
+  w.document.write(htmlPrint);
+  w.document.close();
+  setTimeout(function(){w.print();},400);
+}
 
-  // Mis alertas comerciales
-  const al=document.getElementById('al-activas');
+
+function rAlertas(){
+  var activas=D.alertas.filter(function(a){return a.estado!='Resuelta';});
+  var resueltas=D.alertas.filter(function(a){return a.estado==='Resuelta';}).slice(0,3);
+  var tCls={Alerta:'',Urgente:'urg',Info:'inf',Oportunidad:'op'};
+  var tIcon={Alerta:'[!]',Urgente:'[!!]',Info:'[i]',Oportunidad:'[*]'};
+
+  // Mis alertas activas
+  var al=document.getElementById('al-activas');
   if(al){
     if(!activas.length&&!resueltas.length){
       al.innerHTML='<div class="empty">Sin alertas. Haz clic en + Nueva Alerta para crear una.</div>';
     }else{
       al.innerHTML=activas.map(function(a){
-        let nAcc=0;try{nAcc=(JSON.parse(a.acciones||'[]')||[]).length;}catch(e){}
-        return '<div class="achip '+(tCls[a.tipo]||'')+'" data-alert-id="'+a.id+'">'
+        var nAcc=0;try{nAcc=(JSON.parse(a.acciones||'[]')||[]).length;}catch(e){}
+        return '<div class="achip '+(tCls[a.tipo]||'')+'" style="margin-bottom:8px" data-alid="'+a.id+'">'
           +'<div style="display:flex;align-items:flex-start;gap:10px">'
           +'<span style="font-size:16px;flex-shrink:0">'+(tIcon[a.tipo]||'[!]')+'</span>'
           +'<div style="flex:1">'
@@ -1136,7 +1293,7 @@ function rAlertas(){
           +'<span style="font-size:10px;color:#aaa;margin-left:auto">'+a.creado_por+'</span>'
           +'</div>'
           +(a.descripcion?'<div style="font-size:11px;color:#666;margin-top:3px;line-height:1.4">'+a.descripcion+'</div>':'')
-          +(nAcc>0?'<div style="font-size:10px;color:var(--teal);margin-top:3px">'+nAcc+' accion'+(nAcc>1?'es':'')+ ' registrada'+(nAcc>1?'s':'')+'</div>':'')
+          +(nAcc>0?'<div style="font-size:10px;color:var(--teal);margin-top:3px">'+nAcc+' accion'+(nAcc>1?'es':'')+(nAcc>1?' registradas':' registrada')+'</div>':'')
           +'</div>'
           +'<div style="display:flex;gap:4px;flex-shrink:0;flex-direction:column">'
           +'<button class="btn bt bsm" data-gestionar="'+a.id+'">Gestionar</button>'
@@ -1144,38 +1301,54 @@ function rAlertas(){
           +'<button class="btn bd bsm" data-borrar-alerta="'+a.id+'">Borrar</button>'
           +'</div></div></div>';
       }).join('')
-      +(resueltas.length?'<div style="margin-top:10px;padding-top:10px;border-top:1px solid #eee"><div style="font-size:10px;color:#aaa;font-weight:700;text-transform:uppercase;margin-bottom:6px">Resueltas</div>'+resueltas.map(function(a){return'<div class="achip res"><span style="font-size:11px;color:#888">[OK] <strong>'+a.titulo+'</strong> - '+a.creado_por+'</span></div>';}).join('')+'</div>':'');
+      +(resueltas.length?'<div style="margin-top:10px;padding-top:10px;border-top:1px solid #eee">'
+        +'<div style="font-size:10px;color:#aaa;font-weight:700;text-transform:uppercase;margin-bottom:6px">Resueltas recientemente</div>'
+        +resueltas.map(function(a){return'<div class="achip res" style="margin-bottom:6px"><span style="font-size:11px;color:#888">[OK] <strong>'+a.titulo+'</strong> - '+a.creado_por+'</span></div>';}).join('')
+        +'</div>':'');
     }
+    // Event delegation alertas
+    al.onclick=function(e){
+      var btn=e.target.closest('[data-gestionar],[data-editar-alerta],[data-borrar-alerta]');
+      if(!btn)return;
+      if(btn.dataset.gestionar)gestionar(btn.dataset.gestionar);
+      else if(btn.dataset.editarAlerta)abrirAlerta(btn.dataset.editarAlerta);
+      else if(btn.dataset.borrarAlerta)eliminarAlerta(btn.dataset.borrarAlerta);
+    };
   }
 
-  // Cuentas que requieren atencin  CLICABLES con data-id
-  const cuentasAlerta=D.cuentas.filter(function(c){return c.estado==='Alerta';});
-  const ac=document.getElementById('al-cuentas');
+  // Cuentas que requieren atencion - CLICABLES
+  var cuentasAlerta=D.cuentas.filter(function(c){return c.estado==='Alerta';});
+  var ac=document.getElementById('al-cuentas');
   if(ac){
     if(!cuentasAlerta.length){
       ac.innerHTML='<div class="empty">Sin cuentas en alerta</div>';
     }else{
       ac.innerHTML=cuentasAlerta.map(function(c){
         return '<div class="card" style="margin-bottom:8px;border-left:4px solid var(--amber)">'
-          +'<div style="padding:9px 14px">'
+          +'<div style="padding:10px 14px">'
           +'<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px">'
           +'<strong>'+c.nombre+'</strong>'
           +(esDir()?tbdg(c.territorio):'')
           +(c.representante?'<span class="bdg bgr">'+c.representante+'</span>':'')
           +' <span style="margin-left:auto;font-size:12px;font-weight:800;color:var(--navy)">$'+c.prom+'M/mes</span>'
           +'</div>'
-          +(c.obs?'<div style="font-size:11px;color:#666;margin-bottom:8px;line-height:1.4">'+c.obs+'</div>':'')
+          +(c.obs?'<div style="font-size:11px;color:#555;margin-bottom:8px;line-height:1.5">'+c.obs+'</div>':'')
           +'<button class="btn bt bsm" data-gestionar-cuenta="'+c.id+'">Gestionar esta cuenta</button>'
           +'</div></div>';
       }).join('');
     }
+    // Event delegation cuentas
+    ac.onclick=function(e){
+      var btn=e.target.closest('[data-gestionar-cuenta]');
+      if(btn&&btn.dataset.gestionarCuenta)abrirGestionCuenta(btn.dataset.gestionarCuenta);
+    };
   }
 
-  // Prximas acciones funnel
-  const af=document.getElementById('al-funnel');
+  // Proximas acciones funnel
+  var af=document.getElementById('al-funnel');
   if(af){
-    const proximas=D.prospectos.filter(function(p){return p.fecha;}).sort(function(a,b){return(a.fecha||'').localeCompare(b.fecha||'');}).slice(0,5);
-    af.innerHTML=proximas.map(function(p){
+    var prox=D.prospectos.filter(function(p){return p.fecha;}).sort(function(a,b){return(a.fecha||'').localeCompare(b.fecha||'');}).slice(0,5);
+    af.innerHTML=prox.map(function(p){
       return '<div class="card" style="margin-bottom:6px"><div style="padding:8px 14px;display:flex;align-items:center;gap:9px">'
         +bdg('b'+(p.etapa||'C'),p.etapa||'C')
         +'<div style="flex:1"><div style="font-size:11px;font-weight:700">'+p.nombre+'</div>'
@@ -1185,98 +1358,28 @@ function rAlertas(){
         +'</div></div>';
     }).join('')||'<div class="empty">Sin acciones pendientes</div>';
   }
-
-  // EVENT DELEGATION para todos los botones de alertas y cuentas
-  // Alertas comerciales
-  const alEl=document.getElementById('al-activas');
-  if(alEl){
-    alEl.onclick=function(e){
-      const btn=e.target.closest('[data-gestionar],[data-editar-alerta],[data-borrar-alerta]');
-      if(!btn)return;
-      if(btn.dataset.gestionar){gestionar(btn.dataset.gestionar);}
-      else if(btn.dataset.editarAlerta){abrirAlerta(btn.dataset.editarAlerta);}
-      else if(btn.dataset.borrarAlerta){eliminarAlerta(btn.dataset.borrarAlerta);}
-    };
-  }
-  // Cuentas en alerta
-  const acEl=document.getElementById('al-cuentas');
-  if(acEl){
-    acEl.onclick=function(e){
-      const btn=e.target.closest('[data-gestionar-cuenta]');
-      if(btn&&btn.dataset.gestionarCuenta){abrirGestionCuenta(btn.dataset.gestionarCuenta);}
-    };
-  }
 }
 
-function rGestion(){
-  if(!esDir())return;
-  const now2=new Date();
-  const mes=now2.getMonth(),anio=now2.getFullYear();
-  const zonas=['Cali','Bogota'];
-  const visitasMes=D.visitas.filter(v=>{if(!v.fecha)return false;const d=new Date(v.fecha);return d.getMonth()===mes&&d.getFullYear()===anio;});
-  const pctComp=D.medicos.length?Math.round(D.medicos.filter(m=>medComp(m)===4).length/D.medicos.length*100):0;
-  // Resumen
-  document.getElementById('gest-resumen').innerHTML=[
-    {l:'Visitas empresa este mes',v:visitasMes.length,m:40,u:'de 40 meta total'},
-    {l:'Medicos en directorio',v:D.medicos.length,m:20,u:'registrados'},
-    {l:'Prospectos activos',v:D.prospectos.length,m:15,u:'meta minima 15'},
-    {l:'Completitud medicos',v:pctComp+'%',m:80,u:'meta 80% con datos'},
-  ].map(k=>{
-    const num=typeof k.v==='number'?k.v:pctComp;
-    const pct=Math.min(100,Math.round(num/k.m*100));
-    const col=pct>=80?'var(--green)':pct>=50?'var(--amber)':'var(--red)';
-    return '<div class="dgc"><div class="dgl">'+k.l+'</div><div class="dgv" style="color:'+col+'">'+k.v+'</div><div class="dgm">'+k.u+'</div><div class="dgbar"><div class="dgfil" style="background:'+col+';width:'+pct+'%"></div></div></div>';
-  }).join('');
-  // Completitud por campo
-  const campos=[{k:'tel',l:'Telefono',fn:m=>!!(m.cel||m.wa)},{k:'mail',l:'Email',fn:m=>!!m.mail},{k:'inst',l:'Institucion',fn:m=>!!m.institucion},{k:'bday',l:'Cumpleanos',fn:m=>!!m.bday}];
-  document.getElementById('gest-comp').innerHTML='<div class="card"><div class="cb"><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px">'+campos.map(campo=>{
-    const n=D.medicos.filter(campo.fn).length;
-    const pct=D.medicos.length?Math.round(n/D.medicos.length*100):0;
-    const col=pct>=80?'ok':pct>=50?'wrn':'red';
-    return '<div style="text-align:center"><div style="font-size:11px;font-weight:700;color:#666;margin-bottom:4px">'+campo.l+'</div><div style="font-size:22px;font-weight:800;color:var(--navy)">'+pct+'%</div><div style="font-size:10px;color:#aaa">'+n+' de '+D.medicos.length+'</div><div class="compbar"><div class="compfil" style="background:'+(pct>=80?'var(--green)':pct>=50?'var(--amber)':'var(--red)')+';width:'+pct+'%"></div></div></div>';
-  }).join('')+'</div></div></div>';
-  // Por ejecutivo
-  document.getElementById('gest-ejec').innerHTML=zonas.map(zona=>{
-    const vZ=visitasMes.filter(v=>v.territorio===zona||v.territorio===zona.replace('Bogota','Bogot\u00e1'));
-    const mZ=D.medicos.filter(m=>m.territorio===zona||m.territorio===zona.replace('Bogota','Bogot\u00e1'));
-    const pZ=D.prospectos.filter(p=>p.territorio===zona||p.territorio===zona.replace('Bogota','Bogot\u00e1'));
-    const cZ=D.cuentas.filter(c=>c.territorio===zona||c.territorio===zona.replace('Bogota','Bogot\u00e1'));
-    const nuevosMed=mZ.filter(m=>{if(!m.created_at)return false;const d=new Date(m.created_at);return d.getMonth()===mes&&d.getFullYear()===anio;}).length;
-    const eventos=vZ.filter(v=>v.tipo&&(v.tipo.includes('Congreso')||v.tipo.includes('Evento'))).length;
-    const pctMed=mZ.length?Math.round(mZ.filter(m=>medComp(m)===4).length/mZ.length*100):0;
-    const alAct=D.alertas.filter(a=>(a.territorio===zona||a.territorio===zona.replace('Bogota','Bogot\u00e1'))&&a.estado==='Activa').length;
-    const kpis=[
-      {l:'Visitas documentadas',v:vZ.length,m:20,u:'/20'},
-      {l:'Nuevos prospectos C',v:pZ.filter(p=>p.etapa==='C').length,m:4,u:'/4'},
-      {l:'Nuevos medicos',v:nuevosMed,m:5,u:'/5'},
-      {l:'Avances funnel',v:pZ.filter(p=>['D','N','K'].includes(p.etapa)).length,m:2,u:'/2'},
-      {l:'Prospectos activos',v:pZ.length,m:15,u:'/15'},
-      {l:'Eventos/congresos',v:eventos,m:2,u:'/2'},
-      {l:'Medicos completos',v:pctMed+'%',m:80,u:'/80%'},
-      {l:'Alertas activas',v:alAct,m:0,u:'ref.'},
-    ];
-    return '<div class="rep-sec"><div class="rep-hd"><div class="rep-zon" style="background:'+(zona==='Cali'?'var(--green)':'var(--blue)')+'">'+zona+'</div><div class="rep-tit">Representante Comercial</div><span style="font-size:11px;color:#888">'+cZ.length+' cuentas / '+mZ.length+' medicos</span></div><div class="rep-bod"><div class="kgrid">'+kpis.map(k=>{const num=typeof k.v==='number'?k.v:pctMed;const cls=k.m===0?'gr':num>=k.m?'ok':num>=k.m*0.6?'wrn':'red';return'<div class="ki '+cls+'"><div class="kil">'+k.l+'</div><div class="kiv">'+k.v+'</div><div class="kim">'+k.u+'</div></div>';}).join('')+'</div>'+(vZ.length?'<div style="font-size:10px;font-weight:700;color:#888;text-transform:uppercase;margin-bottom:6px">Ultimas visitas</div>'+vZ.slice(0,4).map(v=>'<div style="display:flex;gap:8px;padding:4px 0;border-bottom:1px solid #f0f0f0;font-size:11px"><span style="color:#aaa;white-space:nowrap">'+v.fecha+'</span><strong>'+v.cliente+'</strong><span style="color:#888">'+v.tipo+'</span><span style="color:'+(v.resultado==='Positivo'?'var(--green)':v.resultado==='Negativo'?'var(--red)':'var(--amber)')+'">'+v.resultado+'</span></div>').join(''):'<div style="font-size:11px;color:#ccc;text-align:center;padding:10px">Sin visitas registradas este mes</div>')+'</div></div>';
-  }).join('');
-  // Medicos incompletos
-  document.getElementById('tb-incompl').innerHTML=D.medicos.filter(m=>medComp(m)<4).sort((a,b)=>medComp(a)-medComp(b)).map(m=>{
-    const sc=medComp(m),pct=sc*25;
-    const col=pct>=75?'var(--green)':pct>=50?'var(--amber)':'var(--red)';
-    return '<tr><td><strong>'+m.nombre+'</strong></td><td>'+tbdg(m.territorio)+'</td><td>'+(m.cel||m.wa?'<span style="color:var(--green)">OK '+(m.cel||m.wa)+'</span>':'<span style="color:var(--red);font-weight:700">Falta</span>')+'</td><td>'+(m.mail?'<span style="color:var(--green)">OK</span>':'<span style="color:var(--red);font-weight:700">Falta</span>')+'</td><td>'+(m.institucion?'<span style="color:var(--green)">OK</span>':'<span style="color:var(--red);font-weight:700">Falta</span>')+'</td><td>'+(m.bday?'<span style="color:var(--green)">OK '+m.bday+'</span>':'<span style="color:var(--red);font-weight:700">Falta</span>')+'</td><td><span style="color:'+col+';font-weight:700">'+pct+'%</span></td><td><button class="btn bo bsm" onclick="abrirMedico(\''+m.id+'\')">Completar</button></td></tr>';
-  }).join('')||'<tr><td colspan="8" class="empty" style="color:var(--green)">Todos los medicos tienen datos completos</td></tr>';
-}
-
-
 // ========================================
-// GESTIN CUENTA EN ALERTA (desde representante)
+// GESTION CUENTA EN ALERTA
 // ========================================
-let cuentaActivaId = null;
+var cuentaActivaId=null;
 
 function abrirGestionCuenta(id){
-  const c=D.cuentas.find(x=>x.id===id);if(!c)return;
+  var c=D.cuentas.find(function(x){return x.id===id;});
+  if(!c)return;
   cuentaActivaId=id;
   document.getElementById('mgc-titulo').textContent=c.nombre;
-  document.getElementById('mgc-meta').textContent='Promedio: $'+c.prom+'M/mes'+(c.representante?' - '+c.representante:'')+(c.territorio?' - '+c.territorio:'');
-  document.getElementById('mgc-detalle').innerHTML='<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:6px">'+ebdg(c.estado)+(c.tipo?'<span class="bdg bgr">'+c.tipo+'</span>':'')+'</div>'+(c.obs?'<div style="font-size:12px;color:#666;line-height:1.5">'+c.obs+'</div>':'<div style="font-size:11px;color:#aaa">Sin observaciones registradas.</div>');
+  document.getElementById('mgc-meta').textContent='Promedio: $'+c.prom+'M/mes'
+    +(c.representante?' - '+c.representante:'')
+    +(c.territorio?' - '+c.territorio:'');
+  document.getElementById('mgc-detalle').innerHTML=
+    '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:6px">'
+    +ebdg(c.estado)
+    +(c.tipo?'<span class="bdg bgr">'+c.tipo+'</span>':'')
+    +(c.representante?'<span class="bdg bb">'+c.representante+'</span>':'')
+    +'</div>'
+    +(c.obs?'<div style="font-size:12px;color:#444;line-height:1.6;margin-top:4px">'+c.obs+'</div>':'<div style="font-size:11px;color:#aaa">Sin observaciones registradas.</div>');
   document.getElementById('mgc-estado').value=c.estado||'Activa';
   document.getElementById('mgc-obs').value=c.obs||'';
   abrir('m-gest-cuenta');
@@ -1285,8 +1388,8 @@ function abrirGestionCuenta(id){
 async function guardarGestionCuenta(){
   if(!cuentaActivaId)return;
   ss('saving','Guardando...');
-  const nuevoEstado=document.getElementById('mgc-estado').value;
-  const nuevaObs=document.getElementById('mgc-obs').value;
+  var nuevoEstado=document.getElementById('mgc-estado').value;
+  var nuevaObs=document.getElementById('mgc-obs').value;
   try{
     await sbU('cuentas',cuentaActivaId,{estado:nuevoEstado,obs:nuevaObs,updated_at:now()});
     await cargarTodo();
@@ -1296,9 +1399,89 @@ async function guardarGestionCuenta(){
 }
 
 // ========================================
+// GESTION DASHBOARD DIRECTOR
+// ========================================
+function rGestion(){
+  if(!esDir())return;
+  var now2=new Date();
+  var mes=now2.getMonth(),anio=now2.getFullYear();
+  var zonas=['Cali','Bogota'];
+  var visitasMes=D.visitas.filter(function(v){
+    if(!v.fecha)return false;
+    var d=new Date(v.fecha);
+    return d.getMonth()===mes&&d.getFullYear()===anio;
+  });
+  var medComp4=D.medicos.filter(function(m){return medComp(m)===4;}).length;
+  var pctComp=D.medicos.length?Math.round(medComp4/D.medicos.length*100):0;
+
+  // Resumen empresa
+  var resEl=document.getElementById('gest-resumen');
+  if(resEl) resEl.innerHTML=[
+    {l:'Visitas empresa este mes',v:visitasMes.length,m:40,u:'de 40 meta total'},
+    {l:'Medicos en directorio',v:D.medicos.length,m:20,u:'registrados'},
+    {l:'Prospectos activos',v:D.prospectos.length,m:15,u:'meta minima 15'},
+    {l:'Completitud medicos',v:pctComp+'%',m:80,u:'meta 80% con datos'},
+  ].map(function(k){
+    var num=typeof k.v==='number'?k.v:pctComp;
+    var pct=Math.min(100,Math.round(num/k.m*100));
+    var col=pct>=80?'var(--green)':pct>=50?'var(--amber)':'var(--red)';
+    return '<div class="dgc"><div class="dgl">'+k.l+'</div><div class="dgv" style="color:'+col+'">'+k.v+'</div><div class="dgm">'+k.u+'</div><div class="dgbar"><div class="dgfil" style="background:'+col+';width:'+pct+'%"></div></div></div>';
+  }).join('');
+
+  // Completitud medicos
+  var compEl=document.getElementById('gest-comp');
+  if(compEl){
+    var campos=[
+      {k:'tel',l:'Telefono',fn:function(m){return !!(m.cel||m.wa);}},
+      {k:'mail',l:'Email',fn:function(m){return !!m.mail;}},
+      {k:'inst',l:'Institucion',fn:function(m){return !!m.institucion;}},
+      {k:'bday',l:'Cumpleanos',fn:function(m){return !!m.bday;}}
+    ];
+    compEl.innerHTML='<div class="card"><div class="cb"><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px">'+campos.map(function(campo){
+      var n=D.medicos.filter(campo.fn).length;
+      var pct=D.medicos.length?Math.round(n/D.medicos.length*100):0;
+      var col=pct>=80?'var(--green)':pct>=50?'var(--amber)':'var(--red)';
+      return '<div style="text-align:center"><div style="font-size:11px;font-weight:700;color:#666;margin-bottom:4px">'+campo.l+'</div><div style="font-size:22px;font-weight:800;color:var(--navy)">'+pct+'%</div><div style="font-size:10px;color:#aaa">'+n+' de '+D.medicos.length+'</div><div class="compbar"><div class="compfil" style="background:'+col+';width:'+pct+'%"></div></div></div>';
+    }).join('')+'</div></div></div>';
+  }
+
+  // Por ejecutivo
+  var ejEl=document.getElementById('gest-ejec');
+  if(ejEl) ejEl.innerHTML=zonas.map(function(zona){
+    var vZ=visitasMes.filter(function(v){return v.territorio===zona||v.territorio===zona.replace('Bogota','Bogot\xe1');});
+    var mZ=D.medicos.filter(function(m){return m.territorio===zona||m.territorio===zona.replace('Bogota','Bogot\xe1');});
+    var pZ=D.prospectos.filter(function(p){return p.territorio===zona||p.territorio===zona.replace('Bogota','Bogot\xe1');});
+    var cZ=D.cuentas.filter(function(c){return c.territorio===zona||c.territorio===zona.replace('Bogota','Bogot\xe1');});
+    var nuevosMed=mZ.filter(function(m){if(!m.created_at)return false;var d=new Date(m.created_at);return d.getMonth()===mes&&d.getFullYear()===anio;}).length;
+    var eventos=vZ.filter(function(v){return v.tipo&&(v.tipo.includes('Congreso')||v.tipo.includes('Evento'));}).length;
+    var pctMed=mZ.length?Math.round(mZ.filter(function(m){return medComp(m)===4;}).length/mZ.length*100):0;
+    var alAct=D.alertas.filter(function(a){return(a.territorio===zona||a.territorio===zona.replace('Bogota','Bogot\xe1'))&&a.estado==='Activa';}).length;
+    var kpis=[
+      {l:'Visitas documentadas',v:vZ.length,m:20,u:'/20'},
+      {l:'Nuevos prospectos C',v:pZ.filter(function(p){return p.etapa==='C';}).length,m:4,u:'/4'},
+      {l:'Nuevos medicos',v:nuevosMed,m:5,u:'/5'},
+      {l:'Avances funnel',v:pZ.filter(function(p){return['D','N','K'].includes(p.etapa);}).length,m:2,u:'/2'},
+      {l:'Prospectos activos',v:pZ.length,m:15,u:'/15'},
+      {l:'Eventos/congresos',v:eventos,m:2,u:'/2'},
+      {l:'Medicos completos',v:pctMed+'%',m:80,u:'/80%'},
+      {l:'Alertas activas',v:alAct,m:0,u:'ref.'},
+    ];
+    return '<div class="rep-sec"><div class="rep-hd"><div class="rep-zon" style="background:'+(zona==='Cali'?'var(--green)':'var(--blue)')+'">'+zona+'</div><div class="rep-tit">Representante Comercial</div><span style="font-size:11px;color:#888">'+cZ.length+' cuentas / '+mZ.length+' medicos</span></div><div class="rep-bod"><div class="kgrid">'+kpis.map(function(k){var num=typeof k.v==='number'?k.v:pctMed;var cls=k.m===0?'gr':num>=k.m?'ok':num>=k.m*0.6?'wrn':'red';return'<div class="ki '+cls+'"><div class="kil">'+k.l+'</div><div class="kiv">'+k.v+'</div><div class="kim">'+k.u+'</div></div>';}).join('')+'</div>'+(vZ.length?'<div style="font-size:10px;font-weight:700;color:#888;text-transform:uppercase;margin-bottom:6px">Ultimas visitas</div>'+vZ.slice(0,4).map(function(v){return'<div style="display:flex;gap:8px;padding:4px 0;border-bottom:1px solid #f0f0f0;font-size:11px"><span style="color:#aaa;white-space:nowrap">'+v.fecha+'</span><strong>'+v.cliente+'</strong><span style="color:#888">'+v.tipo+'</span><span style="color:'+(v.resultado==='Positivo'?'var(--green)':v.resultado==='Negativo'?'var(--red)':'var(--amber)')+'\">'+v.resultado+'</span></div>';}).join(''):'<div style="font-size:11px;color:#ccc;text-align:center;padding:10px">Sin visitas registradas este mes</div>')+'</div></div>';
+  }).join('');
+
+  // Medicos incompletos
+  var tbInc=document.getElementById('tb-incompl');
+  if(tbInc) tbInc.innerHTML=D.medicos.filter(function(m){return medComp(m)<4;}).sort(function(a,b){return medComp(a)-medComp(b);}).map(function(m){
+    var sc=medComp(m),pct=sc*25;
+    var col=pct>=75?'var(--green)':pct>=50?'var(--amber)':'var(--red)';
+    return '<tr><td><strong>'+m.nombre+'</strong></td><td>'+tbdg(m.territorio)+'</td><td>'+(m.cel||m.wa?'<span style="color:var(--green)">OK '+(m.cel||m.wa)+'</span>':'<span style="color:var(--red);font-weight:700">Falta</span>')+'</td><td>'+(m.mail?'<span style="color:var(--green)">OK</span>':'<span style="color:var(--red);font-weight:700">Falta</span>')+'</td><td>'+(m.institucion?'<span style="color:var(--green)">OK</span>':'<span style="color:var(--red);font-weight:700">Falta</span>')+'</td><td>'+(m.bday?'<span style="color:var(--green)">OK '+m.bday+'</span>':'<span style="color:var(--red);font-weight:700">Falta</span>')+'</td><td><span style="color:'+col+';font-weight:700">'+pct+'%</span></td><td><button class="btn bo bsm" onclick="abrirMedico(\''+m.id+'\')">Completar</button></td></tr>';
+  }).join('')||'<tr><td colspan="8" class="empty" style="color:var(--green)">Todos los medicos tienen datos completos</td></tr>';
+}
+
+// ========================================
 // ARRANQUE
 // ========================================
-const ses=sessionStorage.getItem('ost_u');
+var ses=sessionStorage.getItem('ost_u');
 if(ses){try{D.user=JSON.parse(ses);iniciarCRM();}catch(e){sessionStorage.removeItem('ost_u');}}
 </script>
 </body>
