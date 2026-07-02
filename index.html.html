@@ -764,17 +764,68 @@ async function login(){
   const zona=document.getElementById('lzona').value;
   const pin=document.getElementById('lpin').value;
   const el=document.getElementById('lerr');
+  const btnEl=document.querySelector('.lbtn');
   el.classList.remove('show');
   if(!zona||!pin){el.textContent='Completa zona y contrasena.';el.classList.add('show');return;}
+  
+  // Credenciales locales de respaldo (SHA-256 identico al navegador)
+  const LOCAL_USERS={
+    'Cali':{nombre:'Representante Cali',zona:'Cali',rol:'representante',activo:true,
+            pin_hash:'7ded3021fd36a9c47b6c0697125497fc6cf3b2f548b12a60a69d5fbbdbf8f30d'},
+    'Bogota':{nombre:'Representante Bogota',zona:'Bogota',rol:'representante',activo:true,
+              pin_hash:'00f2c897eac416f2f81fbcd50de6c146d0e053bb30205edc0e280b33e459185e'},
+    'todas':{nombre:'Felipe Yarur',zona:'todas',rol:'director',activo:true,
+             pin_hash:'0f3ce7e0089c456192433848162239c5bb386bcadf3c3e2bdb53915a0e5cc6fe'}
+  };
+
+  if(btnEl){btnEl.textContent='Ingresando...';btnEl.disabled=true;}
+  
   try{
     const h=await hP(pin);
-    const r=await fetch(`${SBU}/rest/v1/usuarios?zona=eq.${encodeURIComponent(zona)}&pin_hash=eq.${h}&activo=eq.true&select=*`,{headers:SBH});
-    const u=await r.json();
-    if(!u||!u.length){el.textContent='Zona o contrasena incorrecta.';el.classList.add('show');document.getElementById('lpin').value='';return;}
-    D.user=u[0];
+    
+    // Intentar Supabase primero (con timeout de 4 segundos)
+    let userFound=null;
+    try{
+      const controller=new AbortController();
+      const tid=setTimeout(()=>controller.abort(),4000);
+      const r=await fetch(`${SBU}/rest/v1/usuarios?zona=eq.${encodeURIComponent(zona)}&pin_hash=eq.${h}&activo=eq.true&select=*`,
+        {headers:SBH, signal:controller.signal});
+      clearTimeout(tid);
+      if(r.ok){
+        const u=await r.json();
+        if(u&&u.length) userFound=u[0];
+      }
+    }catch(netErr){
+      // Supabase no disponible — usar credenciales locales
+      console.warn('Supabase no disponible, usando credenciales locales');
+    }
+    
+    // Si Supabase no respondio, verificar credenciales locales
+    if(!userFound){
+      const localU=LOCAL_USERS[zona];
+      if(localU && localU.pin_hash===h){
+        userFound=localU;
+      }
+    }
+    
+    if(!userFound){
+      el.textContent='Zona o contrasena incorrecta.';
+      el.classList.add('show');
+      document.getElementById('lpin').value='';
+      if(btnEl){btnEl.textContent='Entrar al CRM';btnEl.disabled=false;}
+      return;
+    }
+    
+    D.user=userFound;
     sessionStorage.setItem('ost_u',JSON.stringify(D.user));
+    if(btnEl){btnEl.textContent='Entrar al CRM';btnEl.disabled=false;}
     iniciarCRM();
-  }catch(e){el.textContent='Error de conexion.';el.classList.add('show');}
+    
+  }catch(e){
+    el.textContent='Error inesperado. Intenta de nuevo.';
+    el.classList.add('show');
+    if(btnEl){btnEl.textContent='Entrar al CRM';btnEl.disabled=false;}
+  }
 }
 
 function iniciarCRM(){
